@@ -224,7 +224,7 @@ export default function StudentCourseView() {
     return <FileText className="h-3.5 w-3.5" />;
   };
 
-  if (!course) {
+  if (!course || !student) {
     return <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">Loading...</div>;
   }
 
