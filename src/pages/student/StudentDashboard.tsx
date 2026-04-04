@@ -131,6 +131,9 @@ export default function StudentDashboard() {
                       <div className="h-1.5 rounded-full bg-muted">
                         <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${enrollment.progress}%` }} />
                       </div>
+                      <Link to={`/student/course/${enrollment.course_id}`} className="text-primary text-xs font-medium hover:underline mt-2 inline-block">
+                        Continue Learning →
+                      </Link>
                     </div>
                   )}
                   {enrollment.status === "Pending" && (
