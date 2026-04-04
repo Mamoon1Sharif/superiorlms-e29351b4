@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Clock, CheckCircle2, Users } from "lucide-react";
-import { Link } from "react-router-dom";
+import { BookOpen, Clock, CheckCircle2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -107,7 +107,7 @@ export default function StudentDashboard() {
         ) : (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {enrollments.map((enrollment) => (
-              <Card key={enrollment.id} className="hover:shadow-md transition-shadow">
+              <Card key={enrollment.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => enrollment.status === "Approved" ? window.location.href = `/student/course/${enrollment.course_id}` : undefined}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-base leading-tight">
@@ -131,6 +131,9 @@ export default function StudentDashboard() {
                       <div className="h-1.5 rounded-full bg-muted">
                         <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${enrollment.progress}%` }} />
                       </div>
+                      <Link to={`/student/course/${enrollment.course_id}`} className="text-primary text-xs font-medium hover:underline mt-2 inline-block">
+                        Continue Learning →
+                      </Link>
                     </div>
                   )}
                   {enrollment.status === "Pending" && (

@@ -49,6 +49,39 @@ export type Database = {
           },
         ]
       }
+      assignment_submissions: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          grade: number | null
+          graded: boolean
+          id: string
+          student_id: string
+          submission_text: string
+          updated_at: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          grade?: number | null
+          graded?: boolean
+          id?: string
+          student_id: string
+          submission_text?: string
+          updated_at?: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          grade?: number | null
+          graded?: boolean
+          id?: string
+          student_id?: string
+          submission_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       campuses: {
         Row: {
           city: string
@@ -278,6 +311,36 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_attempts: {
+        Row: {
+          answers: Json
+          created_at: string
+          id: string
+          max_score: number
+          module_id: string
+          score: number
+          student_id: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          max_score?: number
+          module_id: string
+          score?: number
+          student_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          id?: string
+          max_score?: number
+          module_id?: string
+          score?: number
+          student_id?: string
+        }
+        Relationships: []
+      }
       quiz_questions: {
         Row: {
           correct_answer: number
@@ -315,6 +378,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      student_progress: {
+        Row: {
+          completed: boolean
+          created_at: string
+          id: string
+          item_id: string
+          item_type: string
+          module_id: string
+          score: number | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          module_id: string
+          score?: number | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          module_id?: string
+          score?: number | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       students: {
         Row: {

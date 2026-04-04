@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -126,9 +127,11 @@ export default function StudentCatalog() {
                   </div>
 
                   {status === "Approved" ? (
-                    <div className="flex items-center gap-1.5 text-success text-sm font-medium">
-                      <CheckCircle2 className="h-4 w-4" /> Enrolled
-                    </div>
+                    <Link to={`/student/course/${course.id}`}>
+                      <Button size="sm" variant="outline" className="gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> View Course
+                      </Button>
+                    </Link>
                   ) : status === "Pending" ? (
                     <Badge variant="secondary" className="w-fit">Pending Approval</Badge>
                   ) : status === "Rejected" ? (
