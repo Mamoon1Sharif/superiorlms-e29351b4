@@ -20,6 +20,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import StudentRegister from "@/pages/student/StudentRegister";
 import StudentDashboard from "@/pages/student/StudentDashboard";
 import StudentCatalog from "@/pages/student/StudentCatalog";
+import StudentCourseView from "@/pages/student/StudentCourseView";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import NotFound from "@/pages/NotFound";
 
@@ -56,6 +57,7 @@ const App = () => (
             <Route element={<StudentLayout />}>
               <Route path="/student" element={<StudentDashboard />} />
               <Route path="/student/catalog" element={<StudentCatalog />} />
+              <Route path="/student/course/:courseId" element={<StudentCourseView />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
