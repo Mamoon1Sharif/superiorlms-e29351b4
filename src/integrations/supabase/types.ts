@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      assignment_details: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          id: string
+          instructions: string
+          max_marks: number
+          module_id: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          instructions: string
+          max_marks?: number
+          module_id: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          instructions?: string
+          max_marks?: number
+          module_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_details_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campuses: {
         Row: {
           city: string
@@ -143,6 +178,44 @@ export type Database = {
           },
         ]
       }
+      lessons: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          module_id: string
+          sort_order: number
+          title: string
+          youtube_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          module_id: string
+          sort_order?: number
+          title: string
+          youtube_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          module_id?: string
+          sort_order?: number
+          title?: string
+          youtube_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modules: {
         Row: {
           course_id: string
@@ -204,6 +277,44 @@ export type Database = {
           type?: string
         }
         Relationships: []
+      }
+      quiz_questions: {
+        Row: {
+          correct_answer: number
+          created_at: string
+          id: string
+          module_id: string
+          options: Json
+          question: string
+          sort_order: number
+        }
+        Insert: {
+          correct_answer?: number
+          created_at?: string
+          id?: string
+          module_id: string
+          options?: Json
+          question: string
+          sort_order?: number
+        }
+        Update: {
+          correct_answer?: number
+          created_at?: string
+          id?: string
+          module_id?: string
+          options?: Json
+          question?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_questions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       students: {
         Row: {
