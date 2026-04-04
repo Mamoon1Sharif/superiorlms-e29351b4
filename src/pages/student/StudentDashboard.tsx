@@ -107,7 +107,7 @@ export default function StudentDashboard() {
         ) : (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {enrollments.map((enrollment) => (
-              <Card key={enrollment.id} className="hover:shadow-md transition-shadow">
+              <Card key={enrollment.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => enrollment.status === "Approved" ? window.location.href = `/student/course/${enrollment.course_id}` : undefined}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-base leading-tight">
