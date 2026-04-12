@@ -79,7 +79,7 @@ export default function EditCourse() {
             question: q.question, options: q.options ?? ["", "", "", ""], correct_answer: q.correct_answer,
           })),
           assignment: m.assignment_details?.[0]
-            ? { instructions: m.assignment_details[0].instructions, deadline: m.assignment_details[0].deadline?.slice(0, 16) ?? "", max_marks: m.assignment_details[0].max_marks }
+            ? { instructions: m.assignment_details[0].instructions, deadline: m.assignment_details[0].deadline?.slice(0, 16) ?? "", max_marks: m.assignment_details[0].max_marks, max_file_size_mb: m.assignment_details[0].max_file_size_mb ?? 10 }
             : emptyAssignment(),
         }));
       setModules(mods.length > 0 ? mods : []);
@@ -118,7 +118,7 @@ export default function EditCourse() {
           if (valid.length) await supabase.from("quiz_questions").insert(valid.map((q, qi) => ({ module_id: dbMod.id, question: q.question, options: q.options, correct_answer: q.correct_answer, sort_order: qi })));
         }
         if (mod.type === "assignment") {
-          await supabase.from("assignment_details").insert({ module_id: dbMod.id, instructions: mod.assignment.instructions, deadline: mod.assignment.deadline || null, max_marks: mod.assignment.max_marks });
+          await supabase.from("assignment_details").insert({ module_id: dbMod.id, instructions: mod.assignment.instructions, deadline: mod.assignment.deadline || null, max_marks: mod.assignment.max_marks, max_file_size_mb: mod.assignment.max_file_size_mb });
         }
       }
       toast.success("Course updated!");
@@ -218,9 +218,10 @@ export default function EditCourse() {
               {mod.type === "assignment" && (
                 <>
                   <Textarea placeholder="Instructions..." value={mod.assignment.instructions} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment, instructions: e.target.value } })} rows={3} />
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1"><Label className="text-xs">Deadline</Label><Input type="datetime-local" value={mod.assignment.deadline} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment, deadline: e.target.value } })} /></div>
                     <div className="space-y-1"><Label className="text-xs">Max Marks</Label><Input type="number" value={mod.assignment.max_marks} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment, max_marks: parseInt(e.target.value) || 0 } })} /></div>
+                    <div className="space-y-1"><Label className="text-xs">Max File Size (MB)</Label><Input type="number" value={mod.assignment.max_file_size_mb} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment, max_file_size_mb: parseInt(e.target.value) || 10 } })} /></div>
                   </div>
                 </>
               )}
