@@ -25,6 +25,7 @@ import StudentCourseView from "@/pages/student/StudentCourseView";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import TeacherStudents from "@/pages/teacher/TeacherStudents";
 import TeacherGrading from "@/pages/teacher/TeacherGrading";
+import TeacherSetup from "@/pages/teacher/TeacherSetup";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
