@@ -60,6 +60,7 @@ export type Database = {
           file_url: string | null
           grade: number | null
           graded: boolean
+          grading_comments: string | null
           id: string
           student_id: string
           submission_text: string
@@ -72,6 +73,7 @@ export type Database = {
           file_url?: string | null
           grade?: number | null
           graded?: boolean
+          grading_comments?: string | null
           id?: string
           student_id: string
           submission_text?: string
@@ -84,6 +86,7 @@ export type Database = {
           file_url?: string | null
           grade?: number | null
           graded?: boolean
+          grading_comments?: string | null
           id?: string
           student_id?: string
           submission_text?: string
@@ -535,6 +538,42 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_class_assignments: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          teacher_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          teacher_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_class_assignments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_class_assignments_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
             referencedColumns: ["id"]
           },
         ]
