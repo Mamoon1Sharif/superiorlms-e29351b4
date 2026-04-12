@@ -16,48 +16,44 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { name, email, campus_id, class_assignments } = await req.json();
+    const { name, email, password, campus_id, class_assignments } = await req.json();
 
-    if (!name || !email) {
-      return new Response(JSON.stringify({ error: "Name and email are required" }), {
+    if (!name || !email || !password) {
+      return new Response(JSON.stringify({ error: "Name, email, and password are required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 1. Try to invite the user via Supabase Auth
-    const origin = req.headers.get("origin") || "https://superiorlms.lovable.app";
-    let userId: string;
-
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: name, role: "teacher" },
-      redirectTo: `${origin}/teacher/setup`,
-    });
-
-    if (inviteError) {
-      // If user already exists, look up their ID and proceed
-      if (inviteError.message.includes("already been registered")) {
-        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-        const existingUser = users?.find((u: any) => u.email === email);
-        if (!existingUser) {
-          return new Response(JSON.stringify({ error: "User exists but could not be found" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        userId = existingUser.id;
-      } else {
-        return new Response(JSON.stringify({ error: inviteError.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } else {
-      userId = inviteData.user.id;
+    if (password.length < 6) {
+      return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
+    // 1. Create the user with email + password (auto-confirmed)
+    const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: name, role: "teacher" },
+    });
+
+    if (createError) {
+      return new Response(JSON.stringify({ error: createError.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = createData.user.id;
+
     // 2. Assign the teacher role
-    await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "teacher" });
+    await supabaseAdmin.from("user_roles").upsert(
+      { user_id: userId, role: "teacher" },
+      { onConflict: "user_id,role" }
+    );
 
     // 3. Create teacher record linked to auth user
     const { data: teacher, error: teacherError } = await supabaseAdmin

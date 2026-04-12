@@ -19,6 +19,7 @@ export default function StudentRegister() {
   const [password, setPassword] = useState("");
   const [regionId, setRegionId] = useState("");
   const [campusId, setCampusId] = useState("");
+  const [classId, setClassId] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { data: regions } = useQuery({
@@ -33,20 +34,32 @@ export default function StudentRegister() {
   const { data: campuses } = useQuery({
     queryKey: ["campuses", regionId],
     queryFn: async () => {
-      let query = supabase.from("campuses").select("id, name, city, region_id");
-      if (regionId) {
-        query = query.eq("region_id", regionId);
-      }
-      const { data, error } = await query.order("name");
+      const { data, error } = await supabase.from("campuses").select("id, name, city, region_id").eq("region_id", regionId).order("name");
       if (error) throw error;
       return data;
     },
     enabled: !!regionId,
   });
 
+  const { data: classes } = useQuery({
+    queryKey: ["classes-by-campus-reg", campusId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("classes").select("id, name").eq("campus_id", campusId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!campusId,
+  });
+
   const handleRegionChange = (value: string) => {
     setRegionId(value);
     setCampusId("");
+    setClassId("");
+  };
+
+  const handleCampusChange = (value: string) => {
+    setCampusId(value);
+    setClassId("");
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -71,6 +84,7 @@ export default function StudentRegister() {
           last_name: lastName,
           phone,
           campus_id: campusId,
+          class_id: classId || null,
         },
       },
     });
@@ -132,11 +146,22 @@ export default function StudentRegister() {
             </div>
             <div className="space-y-2">
               <Label>Campus</Label>
-              <Select value={campusId} onValueChange={setCampusId} disabled={!regionId}>
+              <Select value={campusId} onValueChange={handleCampusChange} disabled={!regionId}>
                 <SelectTrigger><SelectValue placeholder={regionId ? "Select your campus" : "Select a region first"} /></SelectTrigger>
                 <SelectContent>
                   {(campuses ?? []).map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.name} — {c.city}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Class</Label>
+              <Select value={classId} onValueChange={setClassId} disabled={!campusId}>
+                <SelectTrigger><SelectValue placeholder={campusId ? "Select your class" : "Select a campus first"} /></SelectTrigger>
+                <SelectContent>
+                  {(classes ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -4,15 +4,160 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, GraduationCap, ShieldCheck, ClipboardCheck, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Search, GraduationCap, ShieldCheck, ClipboardCheck, CheckCircle2, XCircle, Pencil } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import AddTeacherDialog from "@/components/AddTeacherDialog";
 
+function EditStudentDialog({ student, open, onOpenChange }: { student: any; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState(student.name);
+  const [email, setEmail] = useState(student.email);
+  const [phone, setPhone] = useState(student.phone || "");
+  const [status, setStatus] = useState(student.status);
+  const [regionId, setRegionId] = useState("");
+  const [campusId, setCampusId] = useState(student.campus_id || "");
+  const [classId, setClassId] = useState(student.class_id || "");
+  const [saving, setSaving] = useState(false);
+
+  const { data: regions } = useQuery({
+    queryKey: ["regions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("regions").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: campuses } = useQuery({
+    queryKey: ["campuses-by-region", regionId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campuses").select("*").eq("region_id", regionId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!regionId,
+  });
+
+  const { data: classes } = useQuery({
+    queryKey: ["classes-by-campus", campusId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("classes").select("*").eq("campus_id", campusId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!campusId,
+  });
+
+  const handleSave = async () => {
+    setSaving(true);
+    const { error } = await supabase.from("students").update({
+      name, email, phone: phone || null, status,
+      campus_id: campusId || null,
+      class_id: classId || null,
+    }).eq("id", student.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["students"] });
+    toast.success("Student updated");
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Edit Student</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div><Label>Phone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+          <div>
+            <Label>Region</Label>
+            <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); }}>
+              <SelectTrigger><SelectValue placeholder="Select region" /></SelectTrigger>
+              <SelectContent>{regions?.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Campus</Label>
+            <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); }} disabled={!regionId}>
+              <SelectTrigger><SelectValue placeholder="Select campus" /></SelectTrigger>
+              <SelectContent>{campuses?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Class</Label>
+            <Select value={classId} onValueChange={setClassId} disabled={!campusId}>
+              <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+              <SelectContent>{classes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button className="w-full" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState(teacher.name);
+  const [email, setEmail] = useState(teacher.email);
+  const [status, setStatus] = useState(teacher.status);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const { error } = await supabase.from("teachers").update({ name, email, status }).eq("id", teacher.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    toast.success("Teacher updated");
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Edit Teacher</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div>
+            <Label>Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button className="w-full" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function StudentTable() {
   const [search, setSearch] = useState("");
+  const [editStudent, setEditStudent] = useState<any>(null);
 
   const { data: adminUserIds } = useQuery({
     queryKey: ["admin-user-ids"],
@@ -26,7 +171,7 @@ function StudentTable() {
   const { data: users } = useQuery({
     queryKey: ["students"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("students").select("*, campuses(name)");
+      const { data, error } = await supabase.from("students").select("*, campuses(name), classes(name)");
       if (error) throw error;
       return data;
     },
@@ -62,8 +207,10 @@ function StudentTable() {
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Campus</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Class</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Courses</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -81,9 +228,15 @@ function StudentTable() {
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{u.email}</td>
                     <td className="py-3 px-4 text-muted-foreground">{(u.campuses as any)?.name ?? "—"}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{(u.classes as any)?.name ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{enrollments?.filter((e) => e.student_id === u.id).length ?? 0}</td>
                     <td className="py-3 px-4">
                       <Badge variant={u.status === "Active" ? "default" : "destructive"} className="text-[11px]">{u.status}</Badge>
+                    </td>
+                    <td className="py-3 px-4">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditStudent(u)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -92,12 +245,16 @@ function StudentTable() {
           </div>
         </CardContent>
       </Card>
+      {editStudent && (
+        <EditStudentDialog student={editStudent} open={!!editStudent} onOpenChange={(v) => { if (!v) setEditStudent(null); }} />
+      )}
     </div>
   );
 }
 
 function TeacherTable() {
   const [search, setSearch] = useState("");
+  const [editTeacher, setEditTeacher] = useState<any>(null);
 
   const { data: teachers } = useQuery({
     queryKey: ["teachers"],
@@ -145,6 +302,7 @@ function TeacherTable() {
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned Classes</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -176,6 +334,11 @@ function TeacherTable() {
                       <td className="py-3 px-4">
                         <Badge variant={t.status === "Active" ? "default" : "destructive"} className="text-[11px]">{t.status}</Badge>
                       </td>
+                      <td className="py-3 px-4">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditTeacher(t)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -184,6 +347,9 @@ function TeacherTable() {
           </div>
         </CardContent>
       </Card>
+      {editTeacher && (
+        <EditTeacherDialog teacher={editTeacher} open={!!editTeacher} onOpenChange={(v) => { if (!v) setEditTeacher(null); }} />
+      )}
     </div>
   );
 }

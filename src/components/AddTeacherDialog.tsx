@@ -20,6 +20,7 @@ export default function AddTeacherDialog() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [regionId, setRegionId] = useState("");
   const [campusId, setCampusId] = useState("");
   const [classId, setClassId] = useState("");
@@ -75,13 +76,18 @@ export default function AddTeacherDialog() {
   };
 
   const handleSubmit = async () => {
-    if (!name || !email) return;
+    if (!name || !email || !password) return;
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
     setSubmitting(true);
 
     const { data, error } = await supabase.functions.invoke("invite-teacher", {
       body: {
         name,
         email,
+        password,
         campus_id: campusId || null,
         class_assignments: assignments.map((a) => a.classId),
       },
@@ -90,7 +96,7 @@ export default function AddTeacherDialog() {
     setSubmitting(false);
 
     if (error) {
-      toast.error(error.message || "Failed to invite teacher");
+      toast.error(error.message || "Failed to create teacher");
       return;
     }
 
@@ -101,7 +107,7 @@ export default function AddTeacherDialog() {
 
     queryClient.invalidateQueries({ queryKey: ["teachers"] });
     queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments-all"] });
-    toast.success("Teacher invited! A confirmation email has been sent.");
+    toast.success("Teacher created successfully!");
     resetForm();
     setOpen(false);
   };
@@ -109,6 +115,7 @@ export default function AddTeacherDialog() {
   const resetForm = () => {
     setName("");
     setEmail("");
+    setPassword("");
     setRegionId("");
     setCampusId("");
     setClassId("");
@@ -122,12 +129,9 @@ export default function AddTeacherDialog() {
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Invite New Teacher</DialogTitle>
+          <DialogTitle>Add New Teacher</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            The teacher will receive an email invitation to set up their account and password.
-          </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Name</Label>
@@ -137,6 +141,10 @@ export default function AddTeacherDialog() {
               <Label>Email</Label>
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="teacher@email.com" />
             </div>
+          </div>
+          <div>
+            <Label>Password</Label>
+            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 6 characters" minLength={6} />
           </div>
 
           <div className="border rounded-lg p-3 space-y-3">
@@ -187,9 +195,9 @@ export default function AddTeacherDialog() {
           <Button
             className="w-full"
             onClick={handleSubmit}
-            disabled={!name || !email || submitting}
+            disabled={!name || !email || !password || submitting}
           >
-            {submitting ? "Sending invite..." : "Send Invite"}
+            {submitting ? "Creating..." : "Create Teacher"}
           </Button>
         </div>
       </DialogContent>
