@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ export default function AddTeacherDialog() {
   const [campusId, setCampusId] = useState("");
   const [classId, setClassId] = useState("");
   const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: regions } = useQuery({
@@ -73,35 +74,37 @@ export default function AddTeacherDialog() {
     setAssignments(assignments.filter((a) => a.classId !== classId));
   };
 
-  const createTeacher = useMutation({
-    mutationFn: async () => {
-      // Create teacher record with first assigned campus
-      const firstCampusId = campusId || null;
-      const { data: teacher, error } = await supabase
-        .from("teachers")
-        .insert({ name, email, campus_id: firstCampusId })
-        .select()
-        .single();
-      if (error) throw error;
+  const handleSubmit = async () => {
+    if (!name || !email) return;
+    setSubmitting(true);
 
-      // Create class assignments
-      if (assignments.length > 0) {
-        const { error: assignError } = await supabase
-          .from("teacher_class_assignments")
-          .insert(assignments.map((a) => ({ teacher_id: teacher.id, class_id: a.classId })));
-        if (assignError) throw assignError;
-      }
+    const { data, error } = await supabase.functions.invoke("invite-teacher", {
+      body: {
+        name,
+        email,
+        campus_id: campusId || null,
+        class_assignments: assignments.map((a) => a.classId),
+      },
+    });
 
-      return teacher;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teachers"] });
-      toast.success("Teacher added successfully");
-      resetForm();
-      setOpen(false);
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
+    setSubmitting(false);
+
+    if (error) {
+      toast.error(error.message || "Failed to invite teacher");
+      return;
+    }
+
+    if (data?.error) {
+      toast.error(data.error);
+      return;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments-all"] });
+    toast.success("Teacher invited! A confirmation email has been sent.");
+    resetForm();
+    setOpen(false);
+  };
 
   const resetForm = () => {
     setName("");
@@ -119,9 +122,12 @@ export default function AddTeacherDialog() {
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add New Teacher</DialogTitle>
+          <DialogTitle>Invite New Teacher</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            The teacher will receive an email invitation to set up their account and password.
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Name</Label>
@@ -180,10 +186,10 @@ export default function AddTeacherDialog() {
 
           <Button
             className="w-full"
-            onClick={() => createTeacher.mutate()}
-            disabled={!name || !email || createTeacher.isPending}
+            onClick={handleSubmit}
+            disabled={!name || !email || submitting}
           >
-            {createTeacher.isPending ? "Adding..." : "Add Teacher"}
+            {submitting ? "Sending invite..." : "Send Invite"}
           </Button>
         </div>
       </DialogContent>
