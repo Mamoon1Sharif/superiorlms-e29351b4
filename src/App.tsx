@@ -14,6 +14,7 @@ import CreateCourse from "@/pages/CreateCourse";
 import EditCourse from "@/pages/EditCourse";
 import UsersPage from "@/pages/UsersPage";
 import Campuses from "@/pages/Campuses";
+import InstituteManagement from "@/pages/InstituteManagement";
 import Analytics from "@/pages/Analytics";
 import Notifications from "@/pages/Notifications";
 import SettingsPage from "@/pages/SettingsPage";
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/courses/edit/:id" element={<EditCourse />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/campuses" element={<Campuses />} />
+              <Route path="/institute" element={<InstituteManagement />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/settings" element={<SettingsPage />} />

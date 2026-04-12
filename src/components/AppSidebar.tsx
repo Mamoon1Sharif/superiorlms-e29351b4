@@ -8,6 +8,7 @@ import {
   Settings,
   GraduationCap,
   LogOut,
+  Landmark,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -31,7 +32,7 @@ const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Courses", url: "/courses", icon: BookOpen },
   { title: "Users", url: "/users", icon: Users },
-  { title: "Campuses", url: "/campuses", icon: Building2 },
+  { title: "Institute Management", url: "/institute", icon: Landmark },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
 ];
 
