@@ -155,6 +155,17 @@ export default function StudentRegister() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Class</Label>
+              <Select value={classId} onValueChange={setClassId} disabled={!campusId}>
+                <SelectTrigger><SelectValue placeholder={campusId ? "Select your class" : "Select a campus first"} /></SelectTrigger>
+                <SelectContent>
+                  {(classes ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating account...</> : "Sign Up"}
             </Button>
