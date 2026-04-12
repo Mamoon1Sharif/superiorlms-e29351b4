@@ -95,7 +95,7 @@ export default function TeacherStudents() {
           ))}
         </TabsList>
         {classAssignments?.map((a: any) => {
-          const classStudents = students?.filter((s) => s.class_id === a.class_id) ?? [];
+          const classStudents = students?.filter((s) => s.class_id === a.class_id || (s.class_id === null && s.campus_id === a.classes?.campus_id)) ?? [];
           return (
             <TabsContent key={a.class_id} value={a.class_id} className="mt-4">
               <Card>
