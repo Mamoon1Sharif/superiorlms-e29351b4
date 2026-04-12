@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { BookOpen, LayoutDashboard, LogOut, GraduationCap } from "lucide-react";
+import { BookOpen, LayoutDashboard, LogOut, GraduationCap, Users, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
 
@@ -20,6 +20,12 @@ export default function TeacherLayout() {
 
   if (!user) return null;
 
+  const navItems = [
+    { to: "/teacher", icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/teacher/students", icon: Users, label: "My Students" },
+    { to: "/teacher/grading", icon: ClipboardCheck, label: "Grading" },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
@@ -32,12 +38,11 @@ export default function TeacherLayout() {
               <span className="font-bold text-sm tracking-tight">EduAdmin · Teacher</span>
             </Link>
             <nav className="flex items-center gap-1">
-              <Link to="/teacher" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
-              </Link>
-              <Link to="/teacher/courses" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                <BookOpen className="h-3.5 w-3.5" /> My Courses
-              </Link>
+              {navItems.map((item) => (
+                <Link key={item.to} to={item.to} className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+                  <item.icon className="h-3.5 w-3.5" /> {item.label}
+                </Link>
+              ))}
             </nav>
           </div>
           <div className="flex items-center gap-3">

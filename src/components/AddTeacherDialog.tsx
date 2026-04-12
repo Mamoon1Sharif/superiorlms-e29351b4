@@ -1,0 +1,192 @@
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+
+interface ClassAssignment {
+  classId: string;
+  className: string;
+  campusName: string;
+}
+
+export default function AddTeacherDialog() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [regionId, setRegionId] = useState("");
+  const [campusId, setCampusId] = useState("");
+  const [classId, setClassId] = useState("");
+  const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
+  const queryClient = useQueryClient();
+
+  const { data: regions } = useQuery({
+    queryKey: ["regions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("regions").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: campuses } = useQuery({
+    queryKey: ["campuses-by-region", regionId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campuses").select("*").eq("region_id", regionId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!regionId,
+  });
+
+  const { data: classes } = useQuery({
+    queryKey: ["classes-by-campus", campusId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("classes").select("*").eq("campus_id", campusId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!campusId,
+  });
+
+  const addClassAssignment = () => {
+    if (!classId) return;
+    if (assignments.some((a) => a.classId === classId)) {
+      toast.error("Class already assigned");
+      return;
+    }
+    const cls = classes?.find((c) => c.id === classId);
+    const campus = campuses?.find((c) => c.id === campusId);
+    if (cls && campus) {
+      setAssignments([...assignments, { classId: cls.id, className: cls.name, campusName: campus.name }]);
+      setClassId("");
+    }
+  };
+
+  const removeAssignment = (classId: string) => {
+    setAssignments(assignments.filter((a) => a.classId !== classId));
+  };
+
+  const createTeacher = useMutation({
+    mutationFn: async () => {
+      // Create teacher record with first assigned campus
+      const firstCampusId = campusId || null;
+      const { data: teacher, error } = await supabase
+        .from("teachers")
+        .insert({ name, email, campus_id: firstCampusId })
+        .select()
+        .single();
+      if (error) throw error;
+
+      // Create class assignments
+      if (assignments.length > 0) {
+        const { error: assignError } = await supabase
+          .from("teacher_class_assignments")
+          .insert(assignments.map((a) => ({ teacher_id: teacher.id, class_id: a.classId })));
+        if (assignError) throw assignError;
+      }
+
+      return teacher;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      toast.success("Teacher added successfully");
+      resetForm();
+      setOpen(false);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const resetForm = () => {
+    setName("");
+    setEmail("");
+    setRegionId("");
+    setCampusId("");
+    setClassId("");
+    setAssignments([]);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+      <DialogTrigger asChild>
+        <Button><Plus className="h-4 w-4 mr-2" /> Add Teacher</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add New Teacher</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="teacher@email.com" />
+            </div>
+          </div>
+
+          <div className="border rounded-lg p-3 space-y-3">
+            <p className="text-sm font-medium">Assign Classes</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-xs">Region</Label>
+                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); }}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Region" /></SelectTrigger>
+                  <SelectContent>
+                    {regions?.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Campus</Label>
+                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); }} disabled={!regionId}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Campus" /></SelectTrigger>
+                  <SelectContent>
+                    {campuses?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Class</Label>
+                <Select value={classId} onValueChange={setClassId} disabled={!campusId}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Class" /></SelectTrigger>
+                  <SelectContent>
+                    {classes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={addClassAssignment} disabled={!classId}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Add Class
+            </Button>
+            {assignments.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {assignments.map((a) => (
+                  <Badge key={a.classId} variant="secondary" className="text-xs cursor-pointer" onClick={() => removeAssignment(a.classId)}>
+                    {a.campusName} · {a.className} ✕
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Button
+            className="w-full"
+            onClick={() => createTeacher.mutate()}
+            disabled={!name || !email || createTeacher.isPending}
+          >
+            {createTeacher.isPending ? "Adding..." : "Add Teacher"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

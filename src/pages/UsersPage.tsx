@@ -9,10 +9,10 @@ import { Plus, Search, GraduationCap, ShieldCheck, ClipboardCheck, CheckCircle2,
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import AddTeacherDialog from "@/components/AddTeacherDialog";
 
-function UserTable({ role }: { role: "Student" | "Teacher" }) {
+function StudentTable() {
   const [search, setSearch] = useState("");
-  const isStudent = role === "Student";
 
   const { data: adminUserIds } = useQuery({
     queryKey: ["admin-user-ids"],
@@ -21,14 +21,12 @@ function UserTable({ role }: { role: "Student" | "Teacher" }) {
       if (error) throw error;
       return data.map((r) => r.user_id);
     },
-    enabled: isStudent,
   });
 
   const { data: users } = useQuery({
-    queryKey: [isStudent ? "students" : "teachers"],
+    queryKey: ["students"],
     queryFn: async () => {
-      const table = isStudent ? "students" : "teachers";
-      const { data, error } = await supabase.from(table).select("*, campuses(name)");
+      const { data, error } = await supabase.from("students").select("*, campuses(name)");
       if (error) throw error;
       return data;
     },
@@ -41,29 +39,19 @@ function UserTable({ role }: { role: "Student" | "Teacher" }) {
       if (error) throw error;
       return data;
     },
-    enabled: isStudent,
   });
 
   const filteredUsers = (users ?? [])
-    .filter((u) => {
-      if (isStudent && adminUserIds?.includes(u.user_id)) return false;
-      return true;
-    })
+    .filter((u) => !adminUserIds?.includes(u.user_id))
     .filter((u) => u.name.toLowerCase().includes(search.toLowerCase()));
-
-  const getCourseCount = (userId: string) => {
-    if (!isStudent) return 0;
-    return enrollments?.filter((e) => e.student_id === userId).length ?? 0;
-  };
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="relative max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder={`Search ${role.toLowerCase()}s...`} className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="Search students..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Button><Plus className="h-4 w-4 mr-2" /> Add {role}</Button>
       </div>
       <Card>
         <CardContent className="p-0">
@@ -74,7 +62,7 @@ function UserTable({ role }: { role: "Student" | "Teacher" }) {
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Campus</th>
-                  {isStudent && <th className="text-left py-3 px-4 font-medium text-muted-foreground">Courses</th>}
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Courses</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                 </tr>
               </thead>
@@ -93,7 +81,7 @@ function UserTable({ role }: { role: "Student" | "Teacher" }) {
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{u.email}</td>
                     <td className="py-3 px-4 text-muted-foreground">{(u.campuses as any)?.name ?? "—"}</td>
-                    {isStudent && <td className="py-3 px-4 text-muted-foreground">{getCourseCount(u.id)}</td>}
+                    <td className="py-3 px-4 text-muted-foreground">{enrollments?.filter((e) => e.student_id === u.id).length ?? 0}</td>
                     <td className="py-3 px-4">
                       <Badge variant={u.status === "Active" ? "default" : "destructive"} className="text-[11px]">{u.status}</Badge>
                     </td>
@@ -108,10 +96,102 @@ function UserTable({ role }: { role: "Student" | "Teacher" }) {
   );
 }
 
+function TeacherTable() {
+  const [search, setSearch] = useState("");
+
+  const { data: teachers } = useQuery({
+    queryKey: ["teachers"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("teachers").select("*, campuses(name)");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: assignments } = useQuery({
+    queryKey: ["teacher-class-assignments-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("teacher_class_assignments")
+        .select("*, classes(name, campus_id, campuses(name))");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const filteredTeachers = (teachers ?? []).filter((t) =>
+    t.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const getAssignedClasses = (teacherId: string) =>
+    assignments?.filter((a) => a.teacher_id === teacherId) ?? [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div className="relative max-w-sm w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search teachers..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <AddTeacherDialog />
+      </div>
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned Classes</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTeachers.map((t) => {
+                  const classAssignments = getAssignedClasses(t.id);
+                  return (
+                    <tr key={t.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                              {t.name.split(" ").map((n: string) => n[0]).join("")}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-medium">{t.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground">{t.email}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex flex-wrap gap-1">
+                          {classAssignments.length === 0 && <span className="text-muted-foreground text-xs">None</span>}
+                          {classAssignments.map((a: any) => (
+                            <Badge key={a.id} variant="outline" className="text-[10px]">
+                              {a.classes?.campuses?.name} · {a.classes?.name}
+                            </Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant={t.status === "Active" ? "default" : "destructive"} className="text-[11px]">{t.status}</Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function EnrollmentApprovals() {
   const queryClient = useQueryClient();
 
-  const { data: enrollments, isLoading } = useQuery({
+  const { data: enrollments } = useQuery({
     queryKey: ["pending-enrollments"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -164,20 +244,10 @@ function EnrollmentApprovals() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Badge variant="secondary" className="text-[11px]">{(e.courses as any)?.title}</Badge>
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={() => updateStatus.mutate({ id: e.id, status: "Approved" })}
-                      disabled={updateStatus.isPending}
-                    >
+                    <Button size="sm" variant="default" onClick={() => updateStatus.mutate({ id: e.id, status: "Approved" })} disabled={updateStatus.isPending}>
                       <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => updateStatus.mutate({ id: e.id, status: "Rejected" })}
-                      disabled={updateStatus.isPending}
-                    >
+                    <Button size="sm" variant="destructive" onClick={() => updateStatus.mutate({ id: e.id, status: "Rejected" })} disabled={updateStatus.isPending}>
                       <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
                     </Button>
                   </div>
@@ -187,7 +257,6 @@ function EnrollmentApprovals() {
           </div>
         )}
       </div>
-
       <div>
         <h3 className="text-sm font-semibold mb-3">Processed ({processed.length})</h3>
         <Card>
@@ -234,8 +303,8 @@ export default function UsersPage() {
           <TabsTrigger value="teachers" className="gap-1.5"><ShieldCheck className="h-4 w-4" /> Teachers</TabsTrigger>
           <TabsTrigger value="enrollments" className="gap-1.5"><ClipboardCheck className="h-4 w-4" /> Enrollments</TabsTrigger>
         </TabsList>
-        <TabsContent value="students" className="mt-4"><UserTable role="Student" /></TabsContent>
-        <TabsContent value="teachers" className="mt-4"><UserTable role="Teacher" /></TabsContent>
+        <TabsContent value="students" className="mt-4"><StudentTable /></TabsContent>
+        <TabsContent value="teachers" className="mt-4"><TeacherTable /></TabsContent>
         <TabsContent value="enrollments" className="mt-4"><EnrollmentApprovals /></TabsContent>
       </Tabs>
     </div>
