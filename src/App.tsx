@@ -25,6 +25,7 @@ import StudentCourseView from "@/pages/student/StudentCourseView";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import TeacherStudents from "@/pages/teacher/TeacherStudents";
 import TeacherGrading from "@/pages/teacher/TeacherGrading";
+import TeacherSetup from "@/pages/teacher/TeacherSetup";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
           <Routes>
             {/* Login */}
             <Route path="/login" element={<Login />} />
+            <Route path="/teacher/setup" element={<TeacherSetup />} />
             <Route path="/student/register" element={<StudentRegister />} />
             {/* Admin routes */}
             <Route element={<DashboardLayout />}>
