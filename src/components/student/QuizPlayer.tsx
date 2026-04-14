@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, HelpCircle, AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { CheckCircle2, HelpCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface Question {
@@ -33,8 +34,25 @@ export default function QuizPlayer({ moduleId, questions, studentId, completed, 
   const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<{ score: number; maxScore: number } | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const getQuestionType = (q: Question) => (q.question_type || "mcq") as "mcq" | "true_false" | "fill_blank";
+
+  const currentQ = questions[currentIndex];
+  const isLastQuestion = currentIndex === questions.length - 1;
+
+  const isCurrentAnswered = () => {
+    if (!currentQ) return false;
+    const type = getQuestionType(currentQ);
+    if (type === "fill_blank") return (textAnswers[currentQ.id] || "").trim().length > 0;
+    return answers[currentQ.id] !== undefined;
+  };
+
+  const allAnswered = questions.every(q => {
+    const type = getQuestionType(q);
+    if (type === "fill_blank") return (textAnswers[q.id] || "").trim().length > 0;
+    return answers[q.id] !== undefined;
+  });
 
   const submitQuiz = useMutation({
     mutationFn: async () => {
@@ -42,9 +60,7 @@ export default function QuizPlayer({ moduleId, questions, studentId, completed, 
       for (const q of questions) {
         const type = getQuestionType(q);
         if (type === "fill_blank") {
-          const userText = (textAnswers[q.id] || "").trim().toLowerCase();
-          const correctText = (q.correct_answer_text || "").trim().toLowerCase();
-          if (userText === correctText) score++;
+          if ((textAnswers[q.id] || "").trim().toLowerCase() === (q.correct_answer_text || "").trim().toLowerCase()) score++;
         } else {
           if (answers[q.id] === q.correct_answer) score++;
         }
@@ -64,12 +80,6 @@ export default function QuizPlayer({ moduleId, questions, studentId, completed, 
       toast.success(`Quiz completed! Score: ${data.score}/${data.maxScore}`);
     },
     onError: (err: any) => toast.error(err.message),
-  });
-
-  const allAnswered = questions.every(q => {
-    const type = getQuestionType(q);
-    if (type === "fill_blank") return (textAnswers[q.id] || "").trim().length > 0;
-    return answers[q.id] !== undefined;
   });
 
   if (completed && !submitted) {
@@ -108,7 +118,6 @@ export default function QuizPlayer({ moduleId, questions, studentId, completed, 
               isCorrect = answers[q.id] === q.correct_answer;
             }
             const typeLabel = type === "mcq" ? "MCQ" : type === "true_false" ? "True/False" : "Fill in Blank";
-
             return (
               <div key={q.id} className={`p-4 rounded-lg border ${isCorrect ? "border-green-500/30 bg-green-500/5" : "border-destructive/30 bg-destructive/5"}`}>
                 <p className="font-medium text-sm mb-2">
@@ -141,74 +150,96 @@ export default function QuizPlayer({ moduleId, questions, studentId, completed, 
     );
   }
 
+  const type = getQuestionType(currentQ);
+  const opts = Array.isArray(currentQ.options) ? currentQ.options : [];
+  const typeLabel = type === "mcq" ? "MCQ" : type === "true_false" ? "True/False" : "Fill in Blank";
+  const progressPercent = ((currentIndex + 1) / questions.length) * 100;
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <HelpCircle className="h-5 w-5 text-primary" /> Quiz
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">{questions.length} questions · Answer all to submit</p>
+      <CardHeader className="space-y-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <HelpCircle className="h-5 w-5 text-primary" /> Quiz
+          </CardTitle>
+          <span className="text-sm text-muted-foreground font-medium">
+            {currentIndex + 1} / {questions.length}
+          </span>
+        </div>
+        <Progress value={progressPercent} className="h-2" />
       </CardHeader>
       <CardContent className="space-y-6">
-        {questions.map((q, idx) => {
-          const type = getQuestionType(q);
-          const opts = Array.isArray(q.options) ? q.options : [];
-          const typeLabel = type === "mcq" ? "MCQ" : type === "true_false" ? "True/False" : "Fill in Blank";
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <p className="font-medium">{currentIndex + 1}. {currentQ.question}</p>
+            <Badge variant="outline" className="text-[10px] shrink-0">{typeLabel}</Badge>
+          </div>
 
-          return (
-            <div key={q.id} className="space-y-3">
-              <div className="flex items-center gap-2">
-                <p className="font-medium text-sm">{idx + 1}. {q.question}</p>
-                <Badge variant="outline" className="text-[10px] shrink-0">{typeLabel}</Badge>
-              </div>
+          {type === "mcq" && (
+            <RadioGroup
+              value={answers[currentQ.id]?.toString()}
+              onValueChange={(val) => setAnswers(prev => ({ ...prev, [currentQ.id]: parseInt(val) }))}
+              className="space-y-2"
+            >
+              {opts.map((opt: string, i: number) => (
+                <div key={i} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors">
+                  <RadioGroupItem value={i.toString()} id={`${currentQ.id}-${i}`} />
+                  <Label htmlFor={`${currentQ.id}-${i}`} className="text-sm cursor-pointer flex-1">{String.fromCharCode(65 + i)}. {opt}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          )}
 
-              {type === "mcq" && (
-                <RadioGroup
-                  value={answers[q.id]?.toString()}
-                  onValueChange={(val) => setAnswers(prev => ({ ...prev, [q.id]: parseInt(val) }))}
-                >
-                  {opts.map((opt: string, i: number) => (
-                    <div key={i} className="flex items-center space-x-2">
-                      <RadioGroupItem value={i.toString()} id={`${q.id}-${i}`} />
-                      <Label htmlFor={`${q.id}-${i}`} className="text-sm cursor-pointer">{opt}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              )}
+          {type === "true_false" && (
+            <RadioGroup
+              value={answers[currentQ.id]?.toString()}
+              onValueChange={(val) => setAnswers(prev => ({ ...prev, [currentQ.id]: parseInt(val) }))}
+              className="space-y-2"
+            >
+              {["True", "False"].map((label, i) => (
+                <div key={i} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors">
+                  <RadioGroupItem value={i.toString()} id={`${currentQ.id}-tf-${i}`} />
+                  <Label htmlFor={`${currentQ.id}-tf-${i}`} className="text-sm cursor-pointer flex-1">{label}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          )}
 
-              {type === "true_false" && (
-                <RadioGroup
-                  value={answers[q.id]?.toString()}
-                  onValueChange={(val) => setAnswers(prev => ({ ...prev, [q.id]: parseInt(val) }))}
-                >
-                  {["True", "False"].map((label, i) => (
-                    <div key={i} className="flex items-center space-x-2">
-                      <RadioGroupItem value={i.toString()} id={`${q.id}-tf-${i}`} />
-                      <Label htmlFor={`${q.id}-tf-${i}`} className="text-sm cursor-pointer">{label}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              )}
+          {type === "fill_blank" && (
+            <Input
+              placeholder="Type your answer..."
+              value={textAnswers[currentQ.id] || ""}
+              onChange={(e) => setTextAnswers(prev => ({ ...prev, [currentQ.id]: e.target.value }))}
+              className="max-w-md"
+            />
+          )}
+        </div>
 
-              {type === "fill_blank" && (
-                <Input
-                  placeholder="Type your answer..."
-                  value={textAnswers[q.id] || ""}
-                  onChange={(e) => setTextAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                  className="max-w-md"
-                />
-              )}
-            </div>
-          );
-        })}
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentIndex(i => i - 1)}
+            disabled={currentIndex === 0}
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+          </Button>
 
-        <Button
-          className="w-full"
-          disabled={!allAnswered || submitQuiz.isPending}
-          onClick={() => submitQuiz.mutate()}
-        >
-          {submitQuiz.isPending ? "Submitting..." : "Submit Quiz"}
-        </Button>
+          {isLastQuestion ? (
+            <Button
+              disabled={!allAnswered || submitQuiz.isPending}
+              onClick={() => submitQuiz.mutate()}
+            >
+              {submitQuiz.isPending ? "Submitting..." : "Submit Quiz"}
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setCurrentIndex(i => i + 1)}
+              disabled={!isCurrentAnswered()}
+            >
+              Next <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
