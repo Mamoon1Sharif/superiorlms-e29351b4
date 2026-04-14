@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, HelpCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, HelpCircle, AlertCircle, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 interface Question {
@@ -26,7 +26,7 @@ interface QuizPlayerProps {
   questions: Question[];
   studentId: string;
   completed: boolean;
-  onComplete: (score: number) => void;
+  onComplete: (score: number, maxScore: number) => void;
 }
 
 export default function QuizPlayer({ moduleId, questions, studentId, completed, onComplete }: QuizPlayerProps) {
@@ -76,11 +76,24 @@ export default function QuizPlayer({ moduleId, questions, studentId, completed, 
     onSuccess: (data) => {
       setResult(data);
       setSubmitted(true);
-      onComplete(data.score);
-      toast.success(`Quiz completed! Score: ${data.score}/${data.maxScore}`);
+      onComplete(data.score, data.maxScore);
+      const pct = Math.round((data.score / data.maxScore) * 100);
+      if (pct >= 50) {
+        toast.success(`Quiz passed! Score: ${data.score}/${data.maxScore} (${pct}%)`);
+      } else {
+        toast.error(`Quiz failed. Score: ${data.score}/${data.maxScore} (${pct}%). You need at least 50% to proceed.`);
+      }
     },
     onError: (err: any) => toast.error(err.message),
   });
+
+  const retryQuiz = () => {
+    setAnswers({});
+    setTextAnswers({});
+    setSubmitted(false);
+    setResult(null);
+    setCurrentIndex(0);
+  };
 
   if (completed && !submitted) {
     return (
@@ -96,17 +109,32 @@ export default function QuizPlayer({ moduleId, questions, studentId, completed, 
 
   if (submitted && result) {
     const percentage = Math.round((result.score / result.maxScore) * 100);
+    const passed = percentage >= 50;
+
     return (
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-500" /> Quiz Results
+            {passed ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <AlertCircle className="h-5 w-5 text-destructive" />}
+            Quiz Results
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center py-6">
             <p className="text-4xl font-bold">{result.score}/{result.maxScore}</p>
             <p className="text-muted-foreground mt-1">{percentage}% correct</p>
+            {passed ? (
+              <Badge className="mt-3 bg-green-500/10 text-green-600 border-green-500/30">✓ Passed — You may proceed</Badge>
+            ) : (
+              <div className="mt-3 space-y-2">
+                <Badge variant="destructive" className="text-sm">✗ Failed — 50% required to proceed</Badge>
+                <div>
+                  <Button onClick={retryQuiz} variant="outline" className="mt-2">
+                    <RotateCcw className="h-4 w-4 mr-2" /> Retry Quiz
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           {questions.map((q, idx) => {
             const type = getQuestionType(q);
@@ -145,6 +173,12 @@ export default function QuizPlayer({ moduleId, questions, studentId, completed, 
               </div>
             );
           })}
+
+          {!passed && (
+            <Button onClick={retryQuiz} className="w-full" variant="outline">
+              <RotateCcw className="h-4 w-4 mr-2" /> Retry Quiz
+            </Button>
+          )}
         </CardContent>
       </Card>
     );

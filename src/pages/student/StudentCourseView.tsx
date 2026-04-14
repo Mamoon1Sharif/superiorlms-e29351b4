@@ -261,7 +261,12 @@ export default function StudentCourseView() {
               {currentItem.type === "quiz" && (
                 <QuizPlayer moduleId={currentItem.moduleId} questions={currentItem.data} studentId={student!.id}
                   completed={isItemCompleted(currentItem)}
-                  onComplete={(score) => markComplete.mutate({ itemId: currentItem.id, moduleId: currentItem.moduleId, itemType: "quiz", score })} />
+                  onComplete={(score, maxScore) => {
+                    const pct = maxScore > 0 ? (score / maxScore) * 100 : 0;
+                    if (pct >= 50) {
+                      markComplete.mutate({ itemId: currentItem.id, moduleId: currentItem.moduleId, itemType: "quiz", score });
+                    }
+                  }} />
               )}
               {currentItem.type === "assignment" && (
                 <AssignmentSubmission assignment={currentItem.data} studentId={student!.id}
