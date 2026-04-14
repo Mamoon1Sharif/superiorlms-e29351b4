@@ -396,29 +396,35 @@ export type Database = {
       quiz_questions: {
         Row: {
           correct_answer: number
+          correct_answer_text: string | null
           created_at: string
           id: string
           module_id: string
           options: Json
           question: string
+          question_type: string
           sort_order: number
         }
         Insert: {
           correct_answer?: number
+          correct_answer_text?: string | null
           created_at?: string
           id?: string
           module_id: string
           options?: Json
           question: string
+          question_type?: string
           sort_order?: number
         }
         Update: {
           correct_answer?: number
+          correct_answer_text?: string | null
           created_at?: string
           id?: string
           module_id?: string
           options?: Json
           question?: string
+          question_type?: string
           sort_order?: number
         }
         Relationships: [
