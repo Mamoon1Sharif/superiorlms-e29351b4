@@ -8,23 +8,24 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Video, HelpCircle, FileText, ArrowLeft, Save } from "lucide-react";
+import { Plus, Trash2, Video, HelpCircle, FileText, ArrowLeft, Save, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 
 interface VideoLesson { title: string; description: string; youtube_url: string; }
-interface QuizQuestion { question: string; options: string[]; correct_answer: number; }
+interface QuizQuestion { question: string; question_type: "mcq" | "true_false" | "fill_blank"; options: string[]; correct_answer: number; correct_answer_text: string; }
 interface AssignmentDetail { instructions: string; deadline: string; max_marks: number; max_file_size_mb: number; }
 interface ModuleData {
   id?: string;
   title: string;
-  type: "video" | "quiz" | "assignment";
   videos: VideoLesson[];
   questions: QuizQuestion[];
-  assignment: AssignmentDetail;
+  assignment: AssignmentDetail | null;
 }
 
 const emptyVideo = (): VideoLesson => ({ title: "", description: "", youtube_url: "" });
-const emptyQuestion = (): QuizQuestion => ({ question: "", options: ["", "", "", ""], correct_answer: 0 });
+const emptyMcq = (): QuizQuestion => ({ question: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: 0, correct_answer_text: "" });
+const emptyTrueFalse = (): QuizQuestion => ({ question: "", question_type: "true_false", options: ["True", "False"], correct_answer: 0, correct_answer_text: "" });
+const emptyFillBlank = (): QuizQuestion => ({ question: "", question_type: "fill_blank", options: [], correct_answer: 0, correct_answer_text: "" });
 const emptyAssignment = (): AssignmentDetail => ({ instructions: "", deadline: "", max_marks: 100, max_file_size_mb: 10 });
 
 export default function EditCourse() {
@@ -71,16 +72,19 @@ export default function EditCourse() {
         .map((m: any) => ({
           id: m.id,
           title: m.title,
-          type: m.type as "video" | "quiz" | "assignment",
           videos: (m.lessons ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((l: any) => ({
             title: l.title, description: l.description ?? "", youtube_url: l.youtube_url ?? "",
           })),
           questions: (m.quiz_questions ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((q: any) => ({
-            question: q.question, options: q.options ?? ["", "", "", ""], correct_answer: q.correct_answer,
+            question: q.question,
+            question_type: (q.question_type || "mcq") as "mcq" | "true_false" | "fill_blank",
+            options: q.options ?? ["", "", "", ""],
+            correct_answer: q.correct_answer,
+            correct_answer_text: q.correct_answer_text ?? "",
           })),
           assignment: m.assignment_details?.[0]
             ? { instructions: m.assignment_details[0].instructions, deadline: m.assignment_details[0].deadline?.slice(0, 16) ?? "", max_marks: m.assignment_details[0].max_marks, max_file_size_mb: m.assignment_details[0].max_file_size_mb ?? 10 }
-            : emptyAssignment(),
+            : null,
         }));
       setModules(mods.length > 0 ? mods : []);
       setLoaded(true);
@@ -88,7 +92,7 @@ export default function EditCourse() {
   }, [course, loaded]);
 
   const toggleCampus = (cid: string) => setSelectedCampuses((p) => p.includes(cid) ? p.filter((c) => c !== cid) : [...p, cid]);
-  const addModule = (type: "video" | "quiz" | "assignment") => setModules((p) => [...p, { title: "", type, videos: type === "video" ? [emptyVideo()] : [], questions: type === "quiz" ? [emptyQuestion()] : [], assignment: emptyAssignment() }]);
+  const addModule = () => setModules((p) => [...p, { title: "", videos: [], questions: [], assignment: null }]);
   const removeModule = (i: number) => setModules((p) => p.filter((_, idx) => idx !== i));
   const updateModule = (i: number, u: Partial<ModuleData>) => setModules((p) => p.map((m, idx) => idx === i ? { ...m, ...u } : m));
 
@@ -101,26 +105,42 @@ export default function EditCourse() {
       if (selectedCampuses.length > 0) {
         await supabase.from("course_campuses").insert(selectedCampuses.map((cid) => ({ course_id: id!, campus_id: cid })));
       }
-      // Delete old modules (cascades to lessons, quiz_questions, assignment_details)
       await supabase.from("modules").delete().eq("course_id", id!);
-      // Recreate modules
+
       for (let i = 0; i < modules.length; i++) {
         const mod = modules[i];
         if (!mod.title.trim()) continue;
-        const { data: dbMod } = await supabase.from("modules").insert({ course_id: id!, title: mod.title, type: mod.type, sort_order: i }).select().single();
+        const hasVideos = mod.videos.some(v => v.title.trim());
+        const hasQuiz = mod.questions.some(q => q.question.trim());
+        const hasAssignment = mod.assignment && mod.assignment.instructions.trim();
+        const moduleType = hasVideos ? "video" : hasQuiz ? "quiz" : hasAssignment ? "assignment" : "video";
+
+        const { data: dbMod } = await supabase.from("modules").insert({ course_id: id!, title: mod.title, type: moduleType, sort_order: i }).select().single();
         if (!dbMod) continue;
-        if (mod.type === "video") {
-          const valid = mod.videos.filter((v) => v.title.trim());
-          if (valid.length) await supabase.from("lessons").insert(valid.map((v, vi) => ({ module_id: dbMod.id, title: v.title, description: v.description, youtube_url: v.youtube_url, sort_order: vi })));
+
+        const validVideos = mod.videos.filter((v) => v.title.trim());
+        if (validVideos.length > 0) {
+          await supabase.from("lessons").insert(validVideos.map((v, vi) => ({ module_id: dbMod.id, title: v.title, description: v.description, youtube_url: v.youtube_url, sort_order: vi })));
         }
-        if (mod.type === "quiz") {
-          const valid = mod.questions.filter((q) => q.question.trim());
-          if (valid.length) await supabase.from("quiz_questions").insert(valid.map((q, qi) => ({ module_id: dbMod.id, question: q.question, options: q.options, correct_answer: q.correct_answer, sort_order: qi })));
+
+        const validQs = mod.questions.filter((q) => q.question.trim());
+        if (validQs.length > 0) {
+          await supabase.from("quiz_questions").insert(validQs.map((q, qi) => ({
+            module_id: dbMod.id, question: q.question, question_type: q.question_type,
+            options: q.options, correct_answer: q.correct_answer,
+            correct_answer_text: q.correct_answer_text, sort_order: qi,
+          })));
         }
-        if (mod.type === "assignment") {
-          await supabase.from("assignment_details").insert({ module_id: dbMod.id, instructions: mod.assignment.instructions, deadline: mod.assignment.deadline || null, max_marks: mod.assignment.max_marks, max_file_size_mb: mod.assignment.max_file_size_mb });
+
+        if (mod.assignment && mod.assignment.instructions.trim()) {
+          await supabase.from("assignment_details").insert({
+            module_id: dbMod.id, instructions: mod.assignment.instructions,
+            deadline: mod.assignment.deadline || null, max_marks: mod.assignment.max_marks,
+            max_file_size_mb: mod.assignment.max_file_size_mb,
+          });
         }
       }
+
       toast.success("Course updated!");
       queryClient.invalidateQueries({ queryKey: ["courses-with-details"] });
       navigate("/courses");
@@ -165,68 +185,11 @@ export default function EditCourse() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Modules</h2>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => addModule("video")}><Video className="h-3.5 w-3.5 mr-1" /> Video</Button>
-            <Button variant="outline" size="sm" onClick={() => addModule("quiz")}><HelpCircle className="h-3.5 w-3.5 mr-1" /> Quiz</Button>
-            <Button variant="outline" size="sm" onClick={() => addModule("assignment")}><FileText className="h-3.5 w-3.5 mr-1" /> Assignment</Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={addModule}><Plus className="h-3.5 w-3.5 mr-1" /> Add Module</Button>
         </div>
 
         {modules.map((mod, modIdx) => (
-          <Card key={modIdx}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="text-[11px] shrink-0">
-                  {mod.type === "video" && <><Video className="h-3 w-3 mr-1" />Video</>}
-                  {mod.type === "quiz" && <><HelpCircle className="h-3 w-3 mr-1" />Quiz</>}
-                  {mod.type === "assignment" && <><FileText className="h-3 w-3 mr-1" />Assignment</>}
-                </Badge>
-                <Input value={mod.title} onChange={(e) => updateModule(modIdx, { title: e.target.value })} placeholder="Module title" className="font-medium" />
-                <Button variant="ghost" size="icon" onClick={() => removeModule(modIdx)} className="text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {mod.type === "video" && mod.videos.map((vid, vi) => (
-                <div key={vi} className="p-3 rounded-lg bg-muted/50 space-y-2">
-                  <div className="flex justify-between"><span className="text-xs font-medium text-muted-foreground">Video {vi + 1}</span>
-                    {mod.videos.length > 1 && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateModule(modIdx, { videos: mod.videos.filter((_, i) => i !== vi) })}><Trash2 className="h-3 w-3" /></Button>}
-                  </div>
-                  <Input placeholder="Title" value={vid.title} onChange={(e) => { const v = [...mod.videos]; v[vi] = { ...v[vi], title: e.target.value }; updateModule(modIdx, { videos: v }); }} />
-                  <Input placeholder="YouTube URL" value={vid.youtube_url} onChange={(e) => { const v = [...mod.videos]; v[vi] = { ...v[vi], youtube_url: e.target.value }; updateModule(modIdx, { videos: v }); }} />
-                </div>
-              ))}
-              {mod.type === "video" && <Button variant="outline" size="sm" onClick={() => updateModule(modIdx, { videos: [...mod.videos, emptyVideo()] })}><Plus className="h-3 w-3 mr-1" /> Add Video</Button>}
-
-              {mod.type === "quiz" && mod.questions.map((q, qi) => (
-                <div key={qi} className="p-3 rounded-lg bg-muted/50 space-y-2">
-                  <div className="flex justify-between"><span className="text-xs font-medium text-muted-foreground">Q{qi + 1}</span>
-                    {mod.questions.length > 1 && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateModule(modIdx, { questions: mod.questions.filter((_, i) => i !== qi) })}><Trash2 className="h-3 w-3" /></Button>}
-                  </div>
-                  <Input placeholder="Question" value={q.question} onChange={(e) => { const qs = [...mod.questions]; qs[qi] = { ...qs[qi], question: e.target.value }; updateModule(modIdx, { questions: qs }); }} />
-                  <div className="grid grid-cols-2 gap-2">
-                    {q.options.map((opt, oi) => (
-                      <div key={oi} className="flex items-center gap-2">
-                        <input type="radio" name={`e-${modIdx}-${qi}`} checked={q.correct_answer === oi} onChange={() => { const qs = [...mod.questions]; qs[qi] = { ...qs[qi], correct_answer: oi }; updateModule(modIdx, { questions: qs }); }} className="accent-primary" />
-                        <Input placeholder={`Option ${String.fromCharCode(65 + oi)}`} value={opt} onChange={(e) => { const qs = [...mod.questions]; const opts = [...qs[qi].options]; opts[oi] = e.target.value; qs[qi] = { ...qs[qi], options: opts }; updateModule(modIdx, { questions: qs }); }} className="text-sm" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              {mod.type === "quiz" && <Button variant="outline" size="sm" onClick={() => updateModule(modIdx, { questions: [...mod.questions, emptyQuestion()] })}><Plus className="h-3 w-3 mr-1" /> Add Question</Button>}
-
-              {mod.type === "assignment" && (
-                <>
-                  <Textarea placeholder="Instructions..." value={mod.assignment.instructions} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment, instructions: e.target.value } })} rows={3} />
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1"><Label className="text-xs">Deadline</Label><Input type="datetime-local" value={mod.assignment.deadline} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment, deadline: e.target.value } })} /></div>
-                    <div className="space-y-1"><Label className="text-xs">Max Marks</Label><Input type="number" value={mod.assignment.max_marks} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment, max_marks: parseInt(e.target.value) || 0 } })} /></div>
-                    <div className="space-y-1"><Label className="text-xs">Max File Size (MB)</Label><Input type="number" value={mod.assignment.max_file_size_mb} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment, max_file_size_mb: parseInt(e.target.value) || 10 } })} /></div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <ModuleEditor key={modIdx} mod={mod} modIdx={modIdx} updateModule={updateModule} removeModule={removeModule} />
         ))}
       </div>
 
@@ -234,6 +197,132 @@ export default function EditCourse() {
         <Button onClick={handleSave} disabled={saving} className="gap-2"><Save className="h-4 w-4" /> {saving ? "Saving..." : "Save Changes"}</Button>
         <Button variant="outline" onClick={() => navigate("/courses")}>Cancel</Button>
       </div>
+    </div>
+  );
+}
+
+function ModuleEditor({ mod, modIdx, updateModule, removeModule }: {
+  mod: ModuleData; modIdx: number;
+  updateModule: (i: number, u: Partial<ModuleData>) => void;
+  removeModule: (i: number) => void;
+}) {
+  const addVideo = () => updateModule(modIdx, { videos: [...mod.videos, emptyVideo()] });
+  const addQuestion = (type: "mcq" | "true_false" | "fill_blank") => {
+    const q = type === "mcq" ? emptyMcq() : type === "true_false" ? emptyTrueFalse() : emptyFillBlank();
+    updateModule(modIdx, { questions: [...mod.questions, q] });
+  };
+  const toggleAssignment = () => updateModule(modIdx, { assignment: mod.assignment ? null : emptyAssignment() });
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-3">
+          <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Input value={mod.title} onChange={(e) => updateModule(modIdx, { title: e.target.value })} placeholder="Module title" className="font-medium" />
+          <Button variant="ghost" size="icon" onClick={() => removeModule(modIdx)} className="text-destructive shrink-0"><Trash2 className="h-4 w-4" /></Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={addVideo}><Video className="h-3.5 w-3.5 mr-1" /> Add Video</Button>
+          <Button variant="outline" size="sm" onClick={() => addQuestion("mcq")}><HelpCircle className="h-3.5 w-3.5 mr-1" /> MCQ</Button>
+          <Button variant="outline" size="sm" onClick={() => addQuestion("true_false")}><HelpCircle className="h-3.5 w-3.5 mr-1" /> True/False</Button>
+          <Button variant="outline" size="sm" onClick={() => addQuestion("fill_blank")}><HelpCircle className="h-3.5 w-3.5 mr-1" /> Fill in Blank</Button>
+          {!mod.assignment && <Button variant="outline" size="sm" onClick={toggleAssignment}><FileText className="h-3.5 w-3.5 mr-1" /> Add Assignment</Button>}
+        </div>
+
+        {mod.videos.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><Video className="h-3 w-3" /> Videos</p>
+            {mod.videos.map((vid, vi) => (
+              <div key={vi} className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <div className="flex justify-between"><span className="text-xs font-medium text-muted-foreground">Video {vi + 1}</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateModule(modIdx, { videos: mod.videos.filter((_, i) => i !== vi) })}><Trash2 className="h-3 w-3" /></Button>
+                </div>
+                <Input placeholder="Title" value={vid.title} onChange={(e) => { const v = [...mod.videos]; v[vi] = { ...v[vi], title: e.target.value }; updateModule(modIdx, { videos: v }); }} />
+                <Input placeholder="YouTube URL" value={vid.youtube_url} onChange={(e) => { const v = [...mod.videos]; v[vi] = { ...v[vi], youtube_url: e.target.value }; updateModule(modIdx, { videos: v }); }} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {mod.questions.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><HelpCircle className="h-3 w-3" /> Quiz Questions</p>
+            {mod.questions.map((q, qi) => (
+              <QuestionEditor key={qi} q={q} qi={qi} modIdx={modIdx} mod={mod} updateModule={updateModule} />
+            ))}
+          </div>
+        )}
+
+        {mod.assignment && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><FileText className="h-3 w-3" /> Assignment</p>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={toggleAssignment}><Trash2 className="h-3 w-3" /></Button>
+            </div>
+            <Textarea placeholder="Instructions..." value={mod.assignment.instructions} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, instructions: e.target.value } })} rows={3} />
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1"><Label className="text-xs">Deadline</Label><Input type="datetime-local" value={mod.assignment.deadline} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, deadline: e.target.value } })} /></div>
+              <div className="space-y-1"><Label className="text-xs">Max Marks</Label><Input type="number" value={mod.assignment.max_marks} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, max_marks: parseInt(e.target.value) || 0 } })} /></div>
+              <div className="space-y-1"><Label className="text-xs">Max File (MB)</Label><Input type="number" value={mod.assignment.max_file_size_mb} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, max_file_size_mb: parseInt(e.target.value) || 10 } })} /></div>
+            </div>
+          </div>
+        )}
+
+        {mod.videos.length === 0 && mod.questions.length === 0 && !mod.assignment && (
+          <p className="text-sm text-muted-foreground text-center py-4">Add videos, quiz questions, or an assignment to this module.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function QuestionEditor({ q, qi, modIdx, mod, updateModule }: {
+  q: QuizQuestion; qi: number; modIdx: number; mod: ModuleData;
+  updateModule: (i: number, u: Partial<ModuleData>) => void;
+}) {
+  const updateQ = (updates: Partial<QuizQuestion>) => {
+    const qs = [...mod.questions];
+    qs[qi] = { ...qs[qi], ...updates };
+    updateModule(modIdx, { questions: qs });
+  };
+  const removeQ = () => updateModule(modIdx, { questions: mod.questions.filter((_, i) => i !== qi) });
+  const typeLabel = q.question_type === "mcq" ? "MCQ" : q.question_type === "true_false" ? "True/False" : "Fill in Blank";
+
+  return (
+    <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-muted-foreground">Q{qi + 1}</span>
+          <Badge variant="outline" className="text-[10px]">{typeLabel}</Badge>
+        </div>
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={removeQ}><Trash2 className="h-3 w-3" /></Button>
+      </div>
+      <Input placeholder="Question" value={q.question} onChange={(e) => updateQ({ question: e.target.value })} />
+      {q.question_type === "mcq" && (
+        <div className="grid grid-cols-2 gap-2">
+          {q.options.map((opt, oi) => (
+            <div key={oi} className="flex items-center gap-2">
+              <input type="radio" name={`e-${modIdx}-${qi}`} checked={q.correct_answer === oi} onChange={() => updateQ({ correct_answer: oi })} className="accent-primary" />
+              <Input placeholder={`Option ${String.fromCharCode(65 + oi)}`} value={opt} onChange={(e) => { const opts = [...q.options]; opts[oi] = e.target.value; updateQ({ options: opts }); }} className="text-sm" />
+            </div>
+          ))}
+        </div>
+      )}
+      {q.question_type === "true_false" && (
+        <div className="flex gap-4">
+          {["True", "False"].map((label, i) => (
+            <label key={i} className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="radio" name={`tf-${modIdx}-${qi}`} checked={q.correct_answer === i} onChange={() => updateQ({ correct_answer: i })} className="accent-primary" />
+              {label}
+            </label>
+          ))}
+        </div>
+      )}
+      {q.question_type === "fill_blank" && (
+        <Input placeholder="Correct answer" value={q.correct_answer_text} onChange={(e) => updateQ({ correct_answer_text: e.target.value })} className="text-sm" />
+      )}
     </div>
   );
 }
