@@ -195,9 +195,20 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
   const handleSave = async () => {
     setSaving(true);
     const { error } = await supabase.from("teachers").update({ name, email, status, campus_id: campusId || null }).eq("id", teacher.id);
+    if (error) { setSaving(false); toast.error(error.message); return; }
+
+    // Auto-persist a class selected in the dropdown but not added via "Add Class"
+    if (classId && !currentAssignments?.some((a) => a.class_id === classId)) {
+      const { error: assignErr } = await supabase
+        .from("teacher_class_assignments")
+        .insert({ teacher_id: teacher.id, class_id: classId });
+      if (assignErr) { setSaving(false); toast.error(assignErr.message); return; }
+    }
+
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    await queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    await queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments-all"] });
+    await queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments", teacher.id] });
     toast.success("Teacher updated");
     onOpenChange(false);
   };
