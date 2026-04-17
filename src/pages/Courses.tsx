@@ -65,20 +65,19 @@ export default function Courses() {
 
   const enriched = (courses ?? []).map((c) => {
     const courseEnrollments = enrollments?.filter((e) => e.course_id === c.id) ?? [];
-    const avgProgress = courseEnrollments.length > 0
-      ? Math.round(courseEnrollments.reduce((s, e) => s + e.progress, 0) / courseEnrollments.length)
-      : 0;
     const campusNames = (c.course_campuses as any[])?.map((cc: any) => cc.campuses?.city).filter(Boolean) ?? [];
     const mods = (c.modules as any[]) ?? [];
+    const videoCount = mods.reduce((s, m) => s + (m.lessons?.length ?? 0), 0);
+    const quizCount = mods.filter((m: any) => (m.quiz_questions?.length ?? 0) > 0).length;
+    const assignmentCount = mods.filter((m: any) => (m.assignment_details?.length ?? 0) > 0).length;
     return {
       ...c,
       studentCount: courseEnrollments.length,
-      avgProgress,
       campusNames,
       moduleCount: mods.length,
-      videoCount: mods.filter((m: any) => m.type === "video").length,
-      quizCount: mods.filter((m: any) => m.type === "quiz").length,
-      assignmentCount: mods.filter((m: any) => m.type === "assignment").length,
+      videoCount,
+      quizCount,
+      assignmentCount,
     };
   });
 
