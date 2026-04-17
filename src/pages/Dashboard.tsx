@@ -1,16 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, BookOpen, Building2, TrendingUp } from "lucide-react";
+import { Users, BookOpen, Building2, TrendingUp, MapPin, GraduationCap, Layers, PlayCircle, ClipboardCheck, FileText, UserCheck } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const statusColor: Record<string, string> = {
   Pending: "bg-warning/15 text-warning border-warning/20",
   Approved: "bg-success/15 text-success border-success/20",
   Rejected: "bg-destructive/15 text-destructive border-destructive/20",
 };
+
+const useCount = (table: string) =>
+  useQuery({
+    queryKey: ["count", table],
+    queryFn: async () => {
+      const { count, error } = await supabase.from(table as any).select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
 
 export default function Dashboard() {
   const { data: campuses } = useQuery({
@@ -49,6 +58,13 @@ export default function Dashboard() {
     },
   });
 
+  const { data: regionsCount } = useCount("regions");
+  const { data: classesCount } = useCount("classes");
+  const { data: teachersCount } = useCount("teachers");
+  const { data: modulesCount } = useCount("modules");
+  const { data: lessonsCount } = useCount("lessons");
+  const { data: enrollmentsCount } = useCount("enrollments");
+
   const totalStudents = students?.length ?? 0;
   const publishedCourses = courses?.filter((c) => c.status === "Published").length ?? 0;
   const totalCampuses = campuses?.length ?? 0;
@@ -57,13 +73,11 @@ export default function Dashboard() {
     ? Math.round(approvedEnrollments.reduce((sum, e) => sum + e.progress, 0) / approvedEnrollments.length)
     : 0;
 
-  // Enrollments by campus
   const campusEnrollments = campuses?.map((c) => ({
     campus: c.city,
     students: students?.filter((s) => s.campus_id === c.id).length ?? 0,
   })) ?? [];
 
-  // Progress distribution
   const completed = approvedEnrollments.filter((e) => e.progress >= 100).length;
   const inProgress = approvedEnrollments.filter((e) => e.progress > 0 && e.progress < 100).length;
   const notStarted = approvedEnrollments.filter((e) => e.progress === 0).length;
@@ -82,11 +96,22 @@ export default function Dashboard() {
         <p className="text-muted-foreground text-sm mt-1">Overview of your education network</p>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Students" value={totalStudents} icon={Users} />
-        <StatCard title="Active Courses" value={publishedCourses} icon={BookOpen} iconColor="bg-accent/10 text-accent" />
+      <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <StatCard title="Regions" value={regionsCount ?? 0} icon={MapPin} iconColor="bg-primary/10 text-primary" />
         <StatCard title="Campuses" value={totalCampuses} icon={Building2} iconColor="bg-warning/10 text-warning" />
+        <StatCard title="Classes" value={classesCount ?? 0} icon={Layers} iconColor="bg-accent/10 text-accent" />
+        <StatCard title="Students" value={totalStudents} icon={Users} />
+        <StatCard title="Teachers" value={teachersCount ?? 0} icon={UserCheck} iconColor="bg-success/10 text-success" />
+        <StatCard title="Courses" value={courses?.length ?? 0} icon={BookOpen} iconColor="bg-accent/10 text-accent" />
+        <StatCard title="Published" value={publishedCourses} icon={GraduationCap} iconColor="bg-success/10 text-success" />
+        <StatCard title="Modules" value={modulesCount ?? 0} icon={ClipboardCheck} iconColor="bg-primary/10 text-primary" />
+        <StatCard title="Lessons" value={lessonsCount ?? 0} icon={PlayCircle} iconColor="bg-warning/10 text-warning" />
+        <StatCard title="Enrollments" value={enrollmentsCount ?? 0} icon={FileText} iconColor="bg-accent/10 text-accent" />
+      </div>
+
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
         <StatCard title="Avg. Progress" value={`${avgProgress}%`} icon={TrendingUp} iconColor="bg-success/10 text-success" />
+        <StatCard title="Approved Enrollments" value={approvedEnrollments.length} icon={UserCheck} iconColor="bg-primary/10 text-primary" />
       </div>
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
