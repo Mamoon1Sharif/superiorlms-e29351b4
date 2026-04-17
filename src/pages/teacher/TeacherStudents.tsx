@@ -253,9 +253,8 @@ export default function TeacherStudents() {
                         const isOpen = expanded.has(s.id);
                         const overall = getOverallProgress(s.id);
                         return (
-                          <>
+                          <Fragment key={s.id}>
                             <tr
-                              key={s.id}
                               className="border-b hover:bg-muted/30 cursor-pointer"
                               onClick={() => toggle(s.id)}
                             >
@@ -284,12 +283,11 @@ export default function TeacherStudents() {
                             </tr>
                             {isOpen && (
                               <StudentDetailRow
-                                key={`${s.id}-detail`}
                                 student={s}
                                 courses={(enrollments ?? []).map((e) => ({ ...e, id: e.id }))}
                               />
                             )}
-                          </>
+                          </Fragment>
                         );
                       })}
                     </tbody>
