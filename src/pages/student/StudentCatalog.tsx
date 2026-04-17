@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, BookOpen, Video, HelpCircle, FileText, CheckCircle2 } from "lucide-react";
+import { Search, BookOpen, Video, HelpCircle, FileText, CheckCircle2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export default function StudentCatalog() {
@@ -112,7 +112,16 @@ export default function StudentCatalog() {
             const assignmentCount = course.modules?.filter((m: any) => m.type === "assignment").length ?? 0;
 
             return (
-              <Card key={course.id} className="hover:shadow-md transition-shadow flex flex-col">
+              <Card key={course.id} className="group hover:shadow-md transition-shadow flex flex-col overflow-hidden">
+                <div className="relative aspect-[16/9] bg-muted overflow-hidden">
+                  {course.cover_url ? (
+                    <img src={course.cover_url} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                      <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
+                    </div>
+                  )}
+                </div>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base leading-tight">{course.title}</CardTitle>
                   {course.description && (

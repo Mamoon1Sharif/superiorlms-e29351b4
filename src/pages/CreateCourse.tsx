@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Video, HelpCircle, FileText, ArrowLeft, Save, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import CoverImageUpload from "@/components/CoverImageUpload";
 
 interface VideoLesson {
   title: string;
@@ -51,6 +52,7 @@ export default function CreateCourse() {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [selectedCampuses, setSelectedCampuses] = useState<string[]>([]);
   const [modules, setModules] = useState<ModuleData[]>([]);
   const [saving, setSaving] = useState(false);
@@ -74,7 +76,7 @@ export default function CreateCourse() {
     if (modules.length === 0) { toast.error("Add at least one module"); return; }
     setSaving(true);
     try {
-      const { data: course, error: courseErr } = await supabase.from("courses").insert({ title, description }).select().single();
+      const { data: course, error: courseErr } = await supabase.from("courses").insert({ title, description, cover_url: coverUrl }).select().single();
       if (courseErr) throw courseErr;
 
       if (selectedCampuses.length > 0) {
@@ -143,6 +145,7 @@ export default function CreateCourse() {
       <Card>
         <CardHeader><CardTitle className="text-base">Course Details</CardTitle></CardHeader>
         <CardContent className="space-y-4">
+          <CoverImageUpload value={coverUrl} onChange={setCoverUrl} />
           <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Full Stack Web Development" /></div>
           <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Course overview..." rows={3} /></div>
           <div className="space-y-2">

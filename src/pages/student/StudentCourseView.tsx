@@ -42,7 +42,7 @@ export default function StudentCourseView() {
   const { data: course } = useQuery({
     queryKey: ["course-detail", courseId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("courses").select("id, title, description").eq("id", courseId!).single();
+      const { data, error } = await supabase.from("courses").select("id, title, description, cover_url").eq("id", courseId!).single();
       if (error) throw error;
       return data;
     },
@@ -211,6 +211,13 @@ export default function StudentCourseView() {
           </div>
         </div>
       </div>
+
+      {(course as any).cover_url && (
+        <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden bg-muted">
+          <img src={(course as any).cover_url} alt={course.title} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+        </div>
+      )}
 
       <div className="h-1.5 rounded-full bg-muted">
         <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progressPercent}%` }} />
