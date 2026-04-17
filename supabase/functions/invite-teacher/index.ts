@@ -55,6 +55,9 @@ Deno.serve(async (req) => {
       { onConflict: "user_id,role" }
     );
 
+    // 2b. Remove any auto-created student row (handle_new_student trigger fires before role exists)
+    await supabaseAdmin.from("students").delete().eq("user_id", userId);
+
     // 3. Create teacher record linked to auth user
     const { data: teacher, error: teacherError } = await supabaseAdmin
       .from("teachers")
