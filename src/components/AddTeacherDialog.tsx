@@ -83,13 +83,23 @@ export default function AddTeacherDialog() {
     }
     setSubmitting(true);
 
+    // Auto-include any class selected but not yet added via "Add Class" button
+    let finalAssignments = [...assignments];
+    if (classId && !finalAssignments.some((a) => a.classId === classId)) {
+      const cls = classes?.find((c) => c.id === classId);
+      const campus = campuses?.find((c) => c.id === campusId);
+      if (cls && campus) {
+        finalAssignments.push({ classId: cls.id, className: cls.name, campusName: campus.name });
+      }
+    }
+
     const { data, error } = await supabase.functions.invoke("invite-teacher", {
       body: {
         name,
         email,
         password,
         campus_id: campusId || null,
-        class_assignments: assignments.map((a) => a.classId),
+        class_assignments: finalAssignments.map((a) => a.classId),
       },
     });
 
