@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { GraduationCap, Loader2, BookOpen, Users, Award } from "lucide-react";
 import { toast } from "sonner";
+import collegeBg from "@/assets/college-bg.jpg";
 
 const quotes = [
   { text: "Education is the most powerful weapon which you can use to change the world.", author: "Nelson Mandela" },
@@ -23,6 +24,19 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [quoteIndex] = useState(() => Math.floor(Math.random() * quotes.length));
+  const [stats, setStats] = useState({ courses: 0, students: 0, campuses: 0 });
+
+  useEffect(() => {
+    const loadStats = async () => {
+      const [c, s, ca] = await Promise.all([
+        supabase.from("courses").select("*", { count: "exact", head: true }),
+        supabase.from("students").select("*", { count: "exact", head: true }),
+        supabase.from("campuses").select("*", { count: "exact", head: true }),
+      ]);
+      setStats({ courses: c.count ?? 0, students: s.count ?? 0, campuses: ca.count ?? 0 });
+    };
+    loadStats();
+  }, []);
 
   // If already logged in, redirect based on role
   useEffect(() => {
@@ -96,13 +110,15 @@ export default function Login() {
     <div className="min-h-screen flex">
       {/* Left panel - decorative */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary">
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-accent/40" />
-        
-        {/* Decorative shapes */}
-        <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-white/5 blur-xl" />
-        <div className="absolute bottom-32 right-16 w-96 h-96 rounded-full bg-accent/10 blur-2xl" />
-        <div className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full bg-white/5 blur-lg" />
+        {/* College background image */}
+        <img
+          src={collegeBg}
+          alt="Superior College of Commerce Sargodha campus building"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Gradient overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/85 via-primary/80 to-primary/70" />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-transparent to-primary/40" />
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-between p-12 text-primary-foreground">
@@ -130,21 +146,21 @@ export default function Login() {
               <div className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-white/60" />
                 <div>
-                  <p className="text-xl font-bold">50+</p>
+                  <p className="text-xl font-bold">{stats.courses}</p>
                   <p className="text-xs text-white/60">Courses</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-white/60" />
                 <div>
-                  <p className="text-xl font-bold">5000+</p>
+                  <p className="text-xl font-bold">{stats.students}</p>
                   <p className="text-xs text-white/60">Students</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Award className="h-5 w-5 text-white/60" />
                 <div>
-                  <p className="text-xl font-bold">20+</p>
+                  <p className="text-xl font-bold">{stats.campuses}</p>
                   <p className="text-xs text-white/60">Campuses</p>
                 </div>
               </div>
