@@ -146,21 +146,21 @@ export default function Login() {
               <div className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-white/60" />
                 <div>
-                  <p className="text-xl font-bold">50+</p>
+                  <p className="text-xl font-bold">{stats.courses}</p>
                   <p className="text-xs text-white/60">Courses</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-white/60" />
                 <div>
-                  <p className="text-xl font-bold">5000+</p>
+                  <p className="text-xl font-bold">{stats.students}</p>
                   <p className="text-xs text-white/60">Students</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Award className="h-5 w-5 text-white/60" />
                 <div>
-                  <p className="text-xl font-bold">20+</p>
+                  <p className="text-xl font-bold">{stats.campuses}</p>
                   <p className="text-xs text-white/60">Campuses</p>
                 </div>
               </div>
