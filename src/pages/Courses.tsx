@@ -148,17 +148,6 @@ export default function Courses() {
                   <span className="flex items-center gap-1"><HelpCircle className="h-3 w-3" /> {course.quizCount} Quizzes</span>
                   <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {course.assignmentCount} Assignments</span>
                 </div>
-                {course.studentCount > 0 && (
-                  <div>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">Avg. Progress</span>
-                      <span className="font-medium">{course.avgProgress}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${course.avgProgress}%` }} />
-                    </div>
-                  </div>
-                )}
                 {course.campusNames.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {course.campusNames.map((c: string) => (
