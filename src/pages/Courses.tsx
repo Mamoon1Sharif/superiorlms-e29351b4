@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, MoreVertical, Video, HelpCircle, FileText, BookOpen } from "lucide-react";
+import { Plus, Search, MoreVertical, Video, HelpCircle, FileText, BookOpen, ImageIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -111,13 +111,20 @@ export default function Courses() {
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((course) => (
-            <Card key={course.id} className="group hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1 flex-1 min-w-0">
-                    <CardTitle className="text-base leading-tight">{course.title}</CardTitle>
-                    <Badge variant={course.status === "Published" ? "default" : "secondary"} className="text-[11px]">{course.status}</Badge>
+            <Card key={course.id} className="group hover:shadow-md transition-shadow overflow-hidden flex flex-col">
+              <div className="relative aspect-[16/9] bg-muted overflow-hidden">
+                {(course as any).cover_url ? (
+                  <img src={(course as any).cover_url} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                    <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
                   </div>
+                )}
+                <Badge variant={course.status === "Published" ? "default" : "secondary"} className="absolute top-2 left-2 text-[11px] shadow">{course.status}</Badge>
+              </div>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle className="text-base leading-tight flex-1 min-w-0">{course.title}</CardTitle>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreVertical className="h-4 w-4" /></Button>

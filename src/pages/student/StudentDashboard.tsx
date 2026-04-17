@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Clock, CheckCircle2 } from "lucide-react";
+import { BookOpen, Clock, CheckCircle2, ImageIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 export default function StudentDashboard() {
@@ -28,7 +28,7 @@ export default function StudentDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("enrollments")
-        .select("*, courses(title, description, status)")
+        .select("*, courses(title, description, status, cover_url)")
         .eq("student_id", student!.id);
       if (error) throw error;
       return data;
@@ -106,20 +106,29 @@ export default function StudentDashboard() {
           </Card>
         ) : (
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {enrollments.map((enrollment) => (
-              <Card key={enrollment.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => enrollment.status === "Approved" ? window.location.href = `/student/course/${enrollment.course_id}` : undefined}>
+            {enrollments.map((enrollment) => {
+              const cover = (enrollment.courses as any)?.cover_url;
+              return (
+              <Card key={enrollment.id} className="group hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex flex-col" onClick={() => enrollment.status === "Approved" ? window.location.href = `/student/course/${enrollment.course_id}` : undefined}>
+                <div className="relative aspect-[16/9] bg-muted overflow-hidden">
+                  {cover ? (
+                    <img src={cover} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                      <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
+                    </div>
+                  )}
+                  <Badge
+                    variant={enrollment.status === "Approved" ? "default" : enrollment.status === "Pending" ? "secondary" : "destructive"}
+                    className="absolute top-2 right-2 text-[11px] shadow"
+                  >
+                    {enrollment.status}
+                  </Badge>
+                </div>
                 <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-base leading-tight">
-                      {(enrollment.courses as any)?.title}
-                    </CardTitle>
-                    <Badge
-                      variant={enrollment.status === "Approved" ? "default" : enrollment.status === "Pending" ? "secondary" : "destructive"}
-                      className="text-[11px] shrink-0"
-                    >
-                      {enrollment.status}
-                    </Badge>
-                  </div>
+                  <CardTitle className="text-base leading-tight">
+                    {(enrollment.courses as any)?.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {enrollment.status === "Approved" && (
@@ -144,7 +153,8 @@ export default function StudentDashboard() {
                   )}
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

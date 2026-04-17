@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Video, HelpCircle, FileText, ArrowLeft, Save, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import CoverImageUpload from "@/components/CoverImageUpload";
 
 interface VideoLesson { title: string; description: string; youtube_url: string; }
 interface QuizQuestion { question: string; question_type: "mcq" | "true_false" | "fill_blank"; options: string[]; correct_answer: number; correct_answer_text: string; }
@@ -34,6 +35,7 @@ export default function EditCourse() {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [selectedCampuses, setSelectedCampuses] = useState<string[]>([]);
   const [modules, setModules] = useState<ModuleData[]>([]);
   const [saving, setSaving] = useState(false);
@@ -66,6 +68,7 @@ export default function EditCourse() {
     if (course && !loaded) {
       setTitle(course.title);
       setDescription(course.description ?? "");
+      setCoverUrl((course as any).cover_url ?? null);
       setSelectedCampuses((course.course_campuses as any[])?.map((cc: any) => cc.campus_id) ?? []);
       const mods = ((course.modules as any[]) ?? [])
         .sort((a: any, b: any) => a.sort_order - b.sort_order)
@@ -100,7 +103,7 @@ export default function EditCourse() {
     if (!title.trim()) { toast.error("Title required"); return; }
     setSaving(true);
     try {
-      await supabase.from("courses").update({ title, description }).eq("id", id!);
+      await supabase.from("courses").update({ title, description, cover_url: coverUrl }).eq("id", id!);
       await supabase.from("course_campuses").delete().eq("course_id", id!);
       if (selectedCampuses.length > 0) {
         await supabase.from("course_campuses").insert(selectedCampuses.map((cid) => ({ course_id: id!, campus_id: cid })));
@@ -166,6 +169,7 @@ export default function EditCourse() {
       <Card>
         <CardHeader><CardTitle className="text-base">Course Details</CardTitle></CardHeader>
         <CardContent className="space-y-4">
+          <CoverImageUpload value={coverUrl} onChange={setCoverUrl} />
           <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
           <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
           <div className="space-y-2">
