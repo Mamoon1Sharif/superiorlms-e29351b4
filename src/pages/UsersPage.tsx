@@ -292,10 +292,10 @@ function StudentTable() {
   const [search, setSearch] = useState("");
   const [editStudent, setEditStudent] = useState<any>(null);
 
-  const { data: adminUserIds } = useQuery({
-    queryKey: ["admin-user-ids"],
+  const { data: nonStudentUserIds } = useQuery({
+    queryKey: ["non-student-user-ids"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      const { data, error } = await supabase.from("user_roles").select("user_id, role").in("role", ["admin", "teacher", "campus_admin"]);
       if (error) throw error;
       return data.map((r) => r.user_id);
     },
@@ -320,7 +320,7 @@ function StudentTable() {
   });
 
   const filteredUsers = (users ?? [])
-    .filter((u) => !adminUserIds?.includes(u.user_id))
+    .filter((u) => !nonStudentUserIds?.includes(u.user_id))
     .filter((u) => u.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
