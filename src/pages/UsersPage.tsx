@@ -595,7 +595,80 @@ function EnrollmentApprovals() {
   );
 }
 
+function EditCampusAdminDialog({ campusAdmin, open, onOpenChange }: { campusAdmin: any; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState(campusAdmin.name || campusAdmin.profile?.name || "");
+  const [email, setEmail] = useState(campusAdmin.email || campusAdmin.profile?.email || "");
+  const [regionId, setRegionId] = useState(campusAdmin.campuses?.region_id || "");
+  const [campusId, setCampusId] = useState(campusAdmin.campus_id || "");
+  const [saving, setSaving] = useState(false);
+
+  const { data: regions } = useQuery({
+    queryKey: ["regions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("regions").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: campuses } = useQuery({
+    queryKey: ["campuses-by-region", regionId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campuses").select("*").eq("region_id", regionId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!regionId,
+  });
+
+  const handleSave = async () => {
+    if (!name || !email || !campusId) {
+      toast.error("Name, email and campus are required");
+      return;
+    }
+    setSaving(true);
+    const { error } = await (supabase.from("campus_admins") as any)
+      .update({ name, email, campus_id: campusId })
+      .eq("id", campusAdmin.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    queryClient.invalidateQueries({ queryKey: ["campus-admins"] });
+    toast.success("Campus admin updated");
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Edit Campus Admin</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div>
+            <Label>Region</Label>
+            <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); }}>
+              <SelectTrigger><SelectValue placeholder="Select region" /></SelectTrigger>
+              <SelectContent>{regions?.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Campus</Label>
+            <Select value={campusId} onValueChange={setCampusId} disabled={!regionId}>
+              <SelectTrigger><SelectValue placeholder="Select campus" /></SelectTrigger>
+              <SelectContent>{campuses?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <Button className="w-full" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CampusAdminTable() {
+  const [editCampusAdmin, setEditCampusAdmin] = useState<any>(null);
+
   const { data: campusAdmins, isLoading, error } = useQuery({
     queryKey: ["campus-admins"],
     queryFn: async () => {
@@ -606,13 +679,19 @@ function CampusAdminTable() {
       if (aErr) throw aErr;
 
       const campusIds = Array.from(new Set((admins ?? []).map((a: any) => a.campus_id).filter(Boolean)));
-      let campusMap: Record<string, { name?: string; city?: string }> = {};
+      let campusMap: Record<string, { name?: string; city?: string; region_id?: string; region?: { name?: string } }> = {};
       if (campusIds.length) {
         const { data: campusRows } = await supabase
           .from("campuses")
-          .select("id, name, city")
+          .select("id, name, city, region_id")
           .in("id", campusIds);
-        campusRows?.forEach((c: any) => { campusMap[c.id] = { name: c.name, city: c.city }; });
+        const regionIds = Array.from(new Set((campusRows ?? []).map((c: any) => c.region_id).filter(Boolean)));
+        let regionMap: Record<string, { name?: string }> = {};
+        if (regionIds.length) {
+          const { data: regionRows } = await supabase.from("regions").select("id, name").in("id", regionIds);
+          regionRows?.forEach((r: any) => { regionMap[r.id] = { name: r.name }; });
+        }
+        campusRows?.forEach((c: any) => { campusMap[c.id] = { name: c.name, city: c.city, region_id: c.region_id, region: regionMap[c.region_id] }; });
       }
 
       const userIds = (admins ?? []).map((a: any) => a.user_id);
@@ -624,7 +703,13 @@ function CampusAdminTable() {
           .in("user_id", userIds);
         studentRows?.forEach((s: any) => { profiles[s.user_id] = { name: s.name, email: s.email }; });
       }
-      return (admins ?? []).map((a: any) => ({ ...a, campuses: campusMap[a.campus_id], profile: profiles[a.user_id] }));
+      return (admins ?? []).map((a: any) => ({
+        ...a,
+        name: a.name ?? profiles[a.user_id]?.name,
+        email: a.email ?? profiles[a.user_id]?.email,
+        campuses: campusMap[a.campus_id],
+        profile: profiles[a.user_id],
+      }));
     },
   });
 
@@ -639,38 +724,48 @@ function CampusAdminTable() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name / Email</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Region</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Campus</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">City</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading && (
-                  <tr><td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">Loading…</td></tr>
+                  <tr><td colSpan={7} className="py-8 text-center text-muted-foreground text-sm">Loading…</td></tr>
                 )}
                 {error && (
-                  <tr><td colSpan={4} className="py-8 text-center text-destructive text-sm">{(error as Error).message}</td></tr>
+                  <tr><td colSpan={7} className="py-8 text-center text-destructive text-sm">{(error as Error).message}</td></tr>
                 )}
                 {!isLoading && (campusAdmins ?? []).map((ca: any) => (
                   <tr key={ca.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="py-3 px-4">
-                      <div className="font-medium">{ca.profile?.name ?? "—"}</div>
-                      <div className="text-xs text-muted-foreground">{ca.profile?.email ?? ca.user_id}</div>
-                    </td>
+                    <td className="py-3 px-4 font-medium">{ca.name ?? "—"}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{ca.email ?? ca.user_id}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{ca.campuses?.region?.name ?? "—"}</td>
                     <td className="py-3 px-4">{ca.campuses?.name ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{ca.campuses?.city ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{new Date(ca.created_at).toLocaleDateString()}</td>
+                    <td className="py-3 px-4">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditCampusAdmin(ca)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
                   </tr>
                 ))}
                 {!isLoading && (campusAdmins ?? []).length === 0 && (
-                  <tr><td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">No campus admins yet</td></tr>
+                  <tr><td colSpan={7} className="py-8 text-center text-muted-foreground text-sm">No campus admins yet</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         </CardContent>
       </Card>
+      {editCampusAdmin && (
+        <EditCampusAdminDialog campusAdmin={editCampusAdmin} open={!!editCampusAdmin} onOpenChange={(v) => { if (!v) setEditCampusAdmin(null); }} />
+      )}
     </div>
   );
 }
