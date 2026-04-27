@@ -767,19 +767,17 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Users</h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage students, teachers, campus admins, and view enrollment stats</p>
+        <p className="text-muted-foreground text-sm mt-1">Manage students, teachers, and campus admins</p>
       </div>
       <Tabs defaultValue="students">
         <TabsList>
           <TabsTrigger value="students" className="gap-1.5"><GraduationCap className="h-4 w-4" /> Students</TabsTrigger>
           <TabsTrigger value="teachers" className="gap-1.5"><ShieldCheck className="h-4 w-4" /> Teachers</TabsTrigger>
           <TabsTrigger value="campus-admins" className="gap-1.5"><Building2 className="h-4 w-4" /> Campus Admins</TabsTrigger>
-          <TabsTrigger value="enrollments" className="gap-1.5"><ClipboardCheck className="h-4 w-4" /> Enrollments</TabsTrigger>
         </TabsList>
         <TabsContent value="students" className="mt-4"><StudentTable /></TabsContent>
         <TabsContent value="teachers" className="mt-4"><TeacherTable /></TabsContent>
         <TabsContent value="campus-admins" className="mt-4"><CampusAdminTable /></TabsContent>
-        <TabsContent value="enrollments" className="mt-4"><EnrollmentApprovals /></TabsContent>
       </Tabs>
     </div>
   );
