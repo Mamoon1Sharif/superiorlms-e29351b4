@@ -20,7 +20,7 @@ export default function StudentCatalog() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("id, campus_id")
+        .select("id, campus_id, approval_status")
         .eq("user_id", user!.id)
         .single();
       if (error) throw error;
@@ -28,6 +28,23 @@ export default function StudentCatalog() {
     },
     enabled: !!user,
   });
+
+  const { data: program } = useQuery({
+    queryKey: ["my-program-status", student?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("program_enrollments")
+        .select("status")
+        .eq("student_id", student!.id)
+        .eq("program_id", "00000000-0000-0000-0000-000000000001")
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!student,
+  });
+
+  const hasAccess = student?.approval_status === "Approved" && program?.status === "Approved";
 
   // Courses assigned to this student's campus
   const { data: campusCourses } = useQuery({
@@ -135,24 +152,14 @@ export default function StudentCatalog() {
                     <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {assignmentCount}</span>
                   </div>
 
-                  {status === "Approved" ? (
+                  {hasAccess ? (
                     <Link to={`/student/course/${course.id}`}>
                       <Button size="sm" variant="outline" className="gap-1.5">
                         <CheckCircle2 className="h-3.5 w-3.5" /> View Course
                       </Button>
                     </Link>
-                  ) : status === "Pending" ? (
-                    <Badge variant="secondary" className="w-fit">Pending Approval</Badge>
-                  ) : status === "Rejected" ? (
-                    <Badge variant="destructive" className="w-fit">Rejected</Badge>
                   ) : (
-                    <Button
-                      size="sm"
-                      onClick={() => enrollMutation.mutate(course.id)}
-                      disabled={enrollMutation.isPending}
-                    >
-                      Enroll Now
-                    </Button>
+                    <Badge variant="secondary" className="w-fit">Awaiting program approval</Badge>
                   )}
                 </CardContent>
               </Card>

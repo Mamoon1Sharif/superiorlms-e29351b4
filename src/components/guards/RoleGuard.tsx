@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
-type AllowedRole = "admin" | "teacher" | "student";
+type AllowedRole = "admin" | "teacher" | "student" | "campus_admin";
 
 interface RoleGuardProps {
   children: ReactNode;
@@ -59,6 +59,8 @@ export default function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
         navigate("/", { replace: true });
       } else if (roleData?.role === "teacher") {
         navigate("/teacher", { replace: true });
+      } else if (roleData?.role === "campus_admin") {
+        navigate("/campus-admin", { replace: true });
       } else {
         // Check if student
         const { data: studentData } = await supabase

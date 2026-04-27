@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import StudentLayout from "@/components/StudentLayout";
 import TeacherLayout from "@/components/TeacherLayout";
+import CampusAdminLayout from "@/components/CampusAdminLayout";
 import RoleGuard from "@/components/guards/RoleGuard";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
@@ -28,6 +29,8 @@ import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import TeacherStudents from "@/pages/teacher/TeacherStudents";
 import TeacherGrading from "@/pages/teacher/TeacherGrading";
 import TeacherSetup from "@/pages/teacher/TeacherSetup";
+import CampusAdminDashboard from "@/pages/campus-admin/CampusAdminDashboard";
+import CampusAdminStudents from "@/pages/campus-admin/CampusAdminStudents";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +68,12 @@ const App = () => (
               <Route path="/teacher" element={<TeacherDashboard />} />
               <Route path="/teacher/students" element={<TeacherStudents />} />
               <Route path="/teacher/grading" element={<TeacherGrading />} />
+            </Route>
+
+            {/* Campus Admin routes */}
+            <Route element={<RoleGuard allowedRoles={["campus_admin"]}><CampusAdminLayout /></RoleGuard>}>
+              <Route path="/campus-admin" element={<CampusAdminDashboard />} />
+              <Route path="/campus-admin/students" element={<CampusAdminStudents />} />
             </Route>
 
             {/* Student routes */}

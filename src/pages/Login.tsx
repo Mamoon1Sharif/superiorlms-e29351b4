@@ -51,6 +51,7 @@ export default function Login() {
 
       if (roleData?.role === "admin") { navigate("/", { replace: true }); return; }
       if (roleData?.role === "teacher") { navigate("/teacher", { replace: true }); return; }
+      if (roleData?.role === "campus_admin") { navigate("/campus-admin", { replace: true }); return; }
 
       const { data: studentData } = await supabase
         .from("students")
@@ -90,6 +91,7 @@ export default function Login() {
 
     if (roleData?.role === "admin") { navigate("/"); setLoading(false); return; }
     if (roleData?.role === "teacher") { navigate("/teacher"); setLoading(false); return; }
+    if (roleData?.role === "campus_admin") { navigate("/campus-admin"); setLoading(false); return; }
 
     const { data: studentData } = await supabase
       .from("students")

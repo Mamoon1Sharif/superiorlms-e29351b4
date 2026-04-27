@@ -15,6 +15,7 @@ export default function StudentRegister() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [regNo, setRegNo] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [regionId, setRegionId] = useState("");
@@ -83,6 +84,7 @@ export default function StudentRegister() {
           first_name: firstName,
           last_name: lastName,
           phone,
+          reg_no: regNo,
           campus_id: campusId,
           class_id: classId || null,
         },
@@ -124,6 +126,10 @@ export default function StudentRegister() {
             <div className="space-y-2">
               <Label>Phone Number</Label>
               <Input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="03001234567" />
+            </div>
+            <div className="space-y-2">
+              <Label>Registration Number</Label>
+              <Input required value={regNo} onChange={(e) => setRegNo(e.target.value)} placeholder="e.g. STU-2026-001" />
             </div>
             <div className="space-y-2">
               <Label>Email</Label>

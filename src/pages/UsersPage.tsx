@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, GraduationCap, ShieldCheck, ClipboardCheck, CheckCircle2, XCircle, Pencil } from "lucide-react";
+import { Plus, Search, GraduationCap, ShieldCheck, ClipboardCheck, CheckCircle2, XCircle, Pencil, Building2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import AddTeacherDialog from "@/components/AddTeacherDialog";
+import AddCampusAdminDialog from "@/components/AddCampusAdminDialog";
 
 function EditStudentDialog({ student, open, onOpenChange }: { student: any; open: boolean; onOpenChange: (v: boolean) => void }) {
   const queryClient = useQueryClient();
@@ -291,10 +292,10 @@ function StudentTable() {
   const [search, setSearch] = useState("");
   const [editStudent, setEditStudent] = useState<any>(null);
 
-  const { data: adminUserIds } = useQuery({
-    queryKey: ["admin-user-ids"],
+  const { data: nonStudentUserIds } = useQuery({
+    queryKey: ["non-student-user-ids"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      const { data, error } = await supabase.from("user_roles").select("user_id, role").in("role", ["admin", "teacher", "campus_admin"]);
       if (error) throw error;
       return data.map((r) => r.user_id);
     },
@@ -319,7 +320,7 @@ function StudentTable() {
   });
 
   const filteredUsers = (users ?? [])
-    .filter((u) => !adminUserIds?.includes(u.user_id))
+    .filter((u) => !nonStudentUserIds?.includes(u.user_id))
     .filter((u) => u.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
@@ -337,10 +338,11 @@ function StudentTable() {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Reg No</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Campus</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Class</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Courses</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Approval</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Actions</th>
                 </tr>
@@ -358,10 +360,15 @@ function StudentTable() {
                         <span className="font-medium">{u.name}</span>
                       </div>
                     </td>
+                    <td className="py-3 px-4 text-muted-foreground">{u.reg_no || "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{u.email}</td>
                     <td className="py-3 px-4 text-muted-foreground">{(u.campuses as any)?.name ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{(u.classes as any)?.name ?? "—"}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{enrollments?.filter((e) => e.student_id === u.id).length ?? 0}</td>
+                    <td className="py-3 px-4">
+                      <Badge variant={u.approval_status === "Approved" ? "default" : u.approval_status === "Rejected" ? "destructive" : "secondary"} className="text-[11px]">
+                        {u.approval_status ?? "—"}
+                      </Badge>
+                    </td>
                     <td className="py-3 px-4">
                       <Badge variant={u.status === "Active" ? "default" : "destructive"} className="text-[11px]">{u.status}</Badge>
                     </td>
@@ -588,21 +595,69 @@ function EnrollmentApprovals() {
   );
 }
 
+function CampusAdminTable() {
+  const { data: campusAdmins } = useQuery({
+    queryKey: ["campus-admins"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("campus_admins").select("*, campuses(name, city)");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <AddCampusAdminDialog />
+      </div>
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Campus</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">City</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(campusAdmins ?? []).map((ca: any) => (
+                  <tr key={ca.id} className="border-b last:border-0 hover:bg-muted/30">
+                    <td className="py-3 px-4 font-medium">{ca.campuses?.name ?? "—"}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{ca.campuses?.city ?? "—"}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{new Date(ca.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+                {(campusAdmins ?? []).length === 0 && (
+                  <tr><td colSpan={3} className="py-8 text-center text-muted-foreground text-sm">No campus admins yet</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Users</h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage students, teachers, and enrollment approvals</p>
+        <p className="text-muted-foreground text-sm mt-1">Manage students, teachers, campus admins, and enrollment approvals</p>
       </div>
       <Tabs defaultValue="students">
         <TabsList>
           <TabsTrigger value="students" className="gap-1.5"><GraduationCap className="h-4 w-4" /> Students</TabsTrigger>
           <TabsTrigger value="teachers" className="gap-1.5"><ShieldCheck className="h-4 w-4" /> Teachers</TabsTrigger>
+          <TabsTrigger value="campus-admins" className="gap-1.5"><Building2 className="h-4 w-4" /> Campus Admins</TabsTrigger>
           <TabsTrigger value="enrollments" className="gap-1.5"><ClipboardCheck className="h-4 w-4" /> Enrollments</TabsTrigger>
         </TabsList>
         <TabsContent value="students" className="mt-4"><StudentTable /></TabsContent>
         <TabsContent value="teachers" className="mt-4"><TeacherTable /></TabsContent>
+        <TabsContent value="campus-admins" className="mt-4"><CampusAdminTable /></TabsContent>
         <TabsContent value="enrollments" className="mt-4"><EnrollmentApprovals /></TabsContent>
       </Tabs>
     </div>
