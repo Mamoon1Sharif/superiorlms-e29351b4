@@ -94,6 +94,27 @@ export type Database = {
         }
         Relationships: []
       }
+      campus_admins: {
+        Row: {
+          campus_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          campus_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          campus_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       campuses: {
         Row: {
           city: string
@@ -366,6 +387,57 @@ export type Database = {
         }
         Relationships: []
       }
+      program_enrollments: {
+        Row: {
+          applied_at: string
+          approved_at: string | null
+          approved_by: string | null
+          id: string
+          program_id: string
+          status: string
+          student_id: string
+        }
+        Insert: {
+          applied_at?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          id?: string
+          program_id: string
+          status?: string
+          student_id: string
+        }
+        Update: {
+          applied_at?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          id?: string
+          program_id?: string
+          status?: string
+          student_id?: string
+        }
+        Relationships: []
+      }
+      programs: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       quiz_attempts: {
         Row: {
           answers: Json
@@ -496,6 +568,9 @@ export type Database = {
       }
       students: {
         Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
           campus_id: string | null
           class_id: string | null
           created_at: string
@@ -505,10 +580,14 @@ export type Database = {
           last_name: string | null
           name: string
           phone: string | null
+          reg_no: string | null
           status: string
           user_id: string | null
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           campus_id?: string | null
           class_id?: string | null
           created_at?: string
@@ -518,10 +597,14 @@ export type Database = {
           last_name?: string | null
           name: string
           phone?: string | null
+          reg_no?: string | null
           status?: string
           user_id?: string | null
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
           campus_id?: string | null
           class_id?: string | null
           created_at?: string
@@ -531,6 +614,7 @@ export type Database = {
           last_name?: string | null
           name?: string
           phone?: string | null
+          reg_no?: string | null
           status?: string
           user_id?: string | null
         }
@@ -651,7 +735,7 @@ export type Database = {
       get_user_role: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
-      app_role: "admin" | "teacher" | "student"
+      app_role: "admin" | "teacher" | "student" | "campus_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -779,7 +863,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "teacher", "student"],
+      app_role: ["admin", "teacher", "student", "campus_admin"],
     },
   },
 } as const
