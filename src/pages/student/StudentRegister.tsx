@@ -15,6 +15,7 @@ export default function StudentRegister() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [regNo, setRegNo] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [regionId, setRegionId] = useState("");
@@ -83,6 +84,7 @@ export default function StudentRegister() {
           first_name: firstName,
           last_name: lastName,
           phone,
+          reg_no: regNo,
           campus_id: campusId,
           class_id: classId || null,
         },
