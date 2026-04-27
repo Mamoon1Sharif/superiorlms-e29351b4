@@ -3,13 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Clock, CheckCircle2, ImageIcon } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { BookOpen, Clock, CheckCircle2, ImageIcon, Award, AlertCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { toast } from "sonner";
+
+const PROGRAM_ID = "00000000-0000-0000-0000-000000000001";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
 
-  const { data: student } = useQuery({
+  const { data: student, refetch: refetchStudent } = useQuery({
     queryKey: ["my-student", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -23,141 +27,149 @@ export default function StudentDashboard() {
     enabled: !!user,
   });
 
-  const { data: enrollments } = useQuery({
-    queryKey: ["my-enrollments", student?.id],
+  const { data: programEnrollment, refetch: refetchProgram } = useQuery({
+    queryKey: ["my-program", student?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("enrollments")
-        .select("*, courses(title, description, status, cover_url)")
-        .eq("student_id", student!.id);
+        .from("program_enrollments")
+        .select("*")
+        .eq("student_id", student!.id)
+        .eq("program_id", PROGRAM_ID)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
     enabled: !!student,
   });
 
-  const approvedCount = enrollments?.filter((e) => e.status === "Approved").length ?? 0;
-  const pendingCount = enrollments?.filter((e) => e.status === "Pending").length ?? 0;
-  const avgProgress = enrollments?.filter((e) => e.status === "Approved").length
-    ? Math.round(
-        enrollments.filter((e) => e.status === "Approved").reduce((s, e) => s + e.progress, 0) /
-          enrollments.filter((e) => e.status === "Approved").length
-      )
-    : 0;
+  // Show all courses available for this campus once approved
+  const { data: campusCourses } = useQuery({
+    queryKey: ["campus-courses-dashboard", student?.campus_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("course_campuses")
+        .select("courses(*)")
+        .eq("campus_id", student!.campus_id!);
+      if (error) throw error;
+      return (data?.map((cc: any) => cc.courses).filter(Boolean) ?? []).filter((c: any) => c.status === "Published");
+    },
+    enabled: !!student?.campus_id && programEnrollment?.status === "Approved" && student?.approval_status === "Approved",
+  });
+
+  const applyToProgram = async () => {
+    if (!student) return;
+    const { error } = await supabase.from("program_enrollments").insert({
+      student_id: student.id,
+      program_id: PROGRAM_ID,
+      status: "Pending",
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Application submitted");
+    refetchProgram();
+  };
+
+  const studentApproved = student?.approval_status === "Approved";
+  const programApproved = programEnrollment?.status === "Approved";
+  const fullyApproved = studentApproved && programApproved;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Welcome, {student?.name ?? "Student"}
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight">Welcome, {student?.name ?? "Student"}</h1>
         <p className="text-muted-foreground text-sm mt-1">
           {(student?.campuses as any)?.name} — {(student?.campuses as any)?.city}
+          {student?.reg_no && <span> · Reg: {student.reg_no}</span>}
         </p>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        <Card>
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <BookOpen className="h-5 w-5 text-primary" />
+      {/* Program enrollment card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Award className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Digital Skill Certification</CardTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">A single program covering all available courses</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold">{approvedCount}</p>
-              <p className="text-xs text-muted-foreground">Active Courses</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-              <Clock className="h-5 w-5 text-warning" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{pendingCount}</p>
-              <p className="text-xs text-muted-foreground">Pending Approval</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
-              <CheckCircle2 className="h-5 w-5 text-success" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{avgProgress}%</p>
-              <p className="text-xs text-muted-foreground">Avg. Progress</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div>
-        <h2 className="text-lg font-semibold mb-3">My Courses</h2>
-        {!enrollments?.length ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">You haven't enrolled in any courses yet.</p>
-              <Link to="/student/catalog" className="text-primary text-sm font-medium hover:underline mt-1 inline-block">
-                Browse available courses →
-              </Link>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {enrollments.map((enrollment) => {
-              const cover = (enrollment.courses as any)?.cover_url;
-              return (
-              <Card key={enrollment.id} className="group hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex flex-col" onClick={() => enrollment.status === "Approved" ? window.location.href = `/student/course/${enrollment.course_id}` : undefined}>
-                <div className="relative aspect-[16/9] bg-muted overflow-hidden">
-                  {cover ? (
-                    <img src={cover} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
-                      <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
-                    </div>
-                  )}
-                  <Badge
-                    variant={enrollment.status === "Approved" ? "default" : enrollment.status === "Pending" ? "secondary" : "destructive"}
-                    className="absolute top-2 right-2 text-[11px] shadow"
-                  >
-                    {enrollment.status}
-                  </Badge>
-                </div>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base leading-tight">
-                    {(enrollment.courses as any)?.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {enrollment.status === "Approved" && (
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Progress</span>
-                        <span className="font-medium">{enrollment.progress}%</span>
-                      </div>
-                      <div className="h-1.5 rounded-full bg-muted">
-                        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${enrollment.progress}%` }} />
-                      </div>
-                      <Link to={`/student/course/${enrollment.course_id}`} className="text-primary text-xs font-medium hover:underline mt-2 inline-block">
-                        Continue Learning →
-                      </Link>
-                    </div>
-                  )}
-                  {enrollment.status === "Pending" && (
-                    <p className="text-xs text-muted-foreground">Awaiting admin approval</p>
-                  )}
-                  {enrollment.status === "Rejected" && (
-                    <p className="text-xs text-destructive">Enrollment was rejected</p>
-                  )}
-                </CardContent>
-              </Card>
-              );
-            })}
+            {programEnrollment && (
+              <Badge variant={programApproved ? "default" : programEnrollment.status === "Rejected" ? "destructive" : "secondary"}>
+                {programEnrollment.status}
+              </Badge>
+            )}
           </div>
-        )}
-      </div>
+        </CardHeader>
+        <CardContent>
+          {!programEnrollment ? (
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm text-muted-foreground">Apply once to get access to every course in the program.</p>
+              <Button onClick={applyToProgram}>Apply Now</Button>
+            </div>
+          ) : !studentApproved ? (
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
+              <Clock className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Waiting for campus admin approval</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Your principal will approve your account shortly. You'll then get access to all courses.</p>
+              </div>
+            </div>
+          ) : programEnrollment.status === "Rejected" ? (
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <p className="text-sm">Your program enrollment was rejected. Please contact your campus admin.</p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/20">
+              <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
+              <p className="text-sm font-medium">You're enrolled. All published courses below are available to you.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {fullyApproved && (
+        <div>
+          <h2 className="text-lg font-semibold mb-3">My Courses</h2>
+          {!campusCourses?.length ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">No courses available at your campus yet.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {campusCourses.map((course: any) => {
+                const cover = course.cover_url;
+                return (
+                  <Link to={`/student/course/${course.id}`} key={course.id}>
+                    <Card className="group hover:shadow-md transition-shadow cursor-pointer overflow-hidden flex flex-col h-full">
+                      <div className="relative aspect-[16/9] bg-muted overflow-hidden">
+                        {cover ? (
+                          <img src={cover} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                            <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
+                          </div>
+                        )}
+                      </div>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base leading-tight">{course.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-xs text-primary font-medium">Open course →</p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
