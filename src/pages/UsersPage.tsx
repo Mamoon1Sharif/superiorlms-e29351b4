@@ -596,12 +596,26 @@ function EnrollmentApprovals() {
 }
 
 function CampusAdminTable() {
-  const { data: campusAdmins } = useQuery({
+  const { data: campusAdmins, isLoading, error } = useQuery({
     queryKey: ["campus-admins"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("campus_admins").select("*, campuses(name, city)");
-      if (error) throw error;
-      return data;
+      const { data: admins, error: aErr } = await supabase
+        .from("campus_admins")
+        .select("*, campuses(name, city)")
+        .order("created_at", { ascending: false });
+      if (aErr) throw aErr;
+      // Fetch matching teacher/student-style profile info from students or teachers tables won't work for campus admins.
+      // Pull names/emails from any existing rows in students or teachers as fallback, otherwise show user_id.
+      const userIds = (admins ?? []).map((a: any) => a.user_id);
+      let profiles: Record<string, { name?: string; email?: string }> = {};
+      if (userIds.length) {
+        const { data: studentRows } = await supabase
+          .from("students")
+          .select("user_id, name, email")
+          .in("user_id", userIds);
+        studentRows?.forEach((s: any) => { profiles[s.user_id] = { name: s.name, email: s.email }; });
+      }
+      return (admins ?? []).map((a: any) => ({ ...a, profile: profiles[a.user_id] }));
     },
   });
 
@@ -616,21 +630,32 @@ function CampusAdminTable() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name / Email</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Campus</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">City</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created</th>
                 </tr>
               </thead>
               <tbody>
-                {(campusAdmins ?? []).map((ca: any) => (
+                {isLoading && (
+                  <tr><td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">Loading…</td></tr>
+                )}
+                {error && (
+                  <tr><td colSpan={4} className="py-8 text-center text-destructive text-sm">{(error as Error).message}</td></tr>
+                )}
+                {!isLoading && (campusAdmins ?? []).map((ca: any) => (
                   <tr key={ca.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="py-3 px-4 font-medium">{ca.campuses?.name ?? "—"}</td>
+                    <td className="py-3 px-4">
+                      <div className="font-medium">{ca.profile?.name ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground">{ca.profile?.email ?? ca.user_id}</div>
+                    </td>
+                    <td className="py-3 px-4">{ca.campuses?.name ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{ca.campuses?.city ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{new Date(ca.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
-                {(campusAdmins ?? []).length === 0 && (
-                  <tr><td colSpan={3} className="py-8 text-center text-muted-foreground text-sm">No campus admins yet</td></tr>
+                {!isLoading && (campusAdmins ?? []).length === 0 && (
+                  <tr><td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">No campus admins yet</td></tr>
                 )}
               </tbody>
             </table>
