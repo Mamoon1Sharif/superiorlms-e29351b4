@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Building2, LayoutDashboard, Users, ClipboardCheck, LogOut } from "lucide-react";
+import { Building2, LayoutDashboard, Users, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function CampusAdminLayout() {
