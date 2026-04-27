@@ -128,6 +128,10 @@ export default function StudentRegister() {
               <Input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="03001234567" />
             </div>
             <div className="space-y-2">
+              <Label>Registration Number</Label>
+              <Input required value={regNo} onChange={(e) => setRegNo(e.target.value)} placeholder="e.g. STU-2026-001" />
+            </div>
+            <div className="space-y-2">
               <Label>Email</Label>
               <Input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
             </div>
