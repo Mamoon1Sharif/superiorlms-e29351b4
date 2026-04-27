@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, GraduationCap, ShieldCheck, ClipboardCheck, CheckCircle2, XCircle, Pencil, Building2 } from "lucide-react";
+import { Plus, Search, GraduationCap, ShieldCheck, Pencil, Building2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -493,100 +493,6 @@ function TeacherTable() {
   );
 }
 
-function EnrollmentApprovals() {
-  const { data: rows, isLoading } = useQuery({
-    queryKey: ["admin-enrollment-stats"],
-    queryFn: async () => {
-      const [{ data: enrollments, error: eErr }, { data: students, error: sErr }, { data: campuses, error: cErr }] = await Promise.all([
-        supabase.from("enrollments").select("status, student_id"),
-        supabase.from("students").select("id, campus_id"),
-        supabase.from("campuses").select("id, name, city"),
-      ]);
-      if (eErr) throw eErr;
-      if (sErr) throw sErr;
-      if (cErr) throw cErr;
-
-      const studentCampus: Record<string, string | null> = {};
-      (students ?? []).forEach((s: any) => (studentCampus[s.id] = s.campus_id));
-
-      const stats: Record<string, { received: number; approved: number; rejected: number; pending: number }> = {};
-      (campuses ?? []).forEach((c: any) => (stats[c.id] = { received: 0, approved: 0, rejected: 0, pending: 0 }));
-
-      (enrollments ?? []).forEach((e: any) => {
-        const cid = studentCampus[e.student_id];
-        if (!cid || !stats[cid]) return;
-        stats[cid].received += 1;
-        if (e.status === "Approved") stats[cid].approved += 1;
-        else if (e.status === "Rejected") stats[cid].rejected += 1;
-        else stats[cid].pending += 1;
-      });
-
-      return (campuses ?? []).map((c: any) => ({ ...c, ...stats[c.id] }));
-    },
-  });
-
-  const totals = (rows ?? []).reduce(
-    (acc, r: any) => {
-      acc.received += r.received;
-      acc.approved += r.approved;
-      acc.rejected += r.rejected;
-      acc.pending += r.pending;
-      return acc;
-    },
-    { received: 0, approved: 0, rejected: 0, pending: 0 }
-  );
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Received</p><p className="text-2xl font-bold mt-1">{totals.received}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Pending</p><p className="text-2xl font-bold mt-1">{totals.pending}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Approved</p><p className="text-2xl font-bold mt-1 text-primary">{totals.approved}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Rejected</p><p className="text-2xl font-bold mt-1 text-destructive">{totals.rejected}</p></CardContent></Card>
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Campus</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">City</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Received</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Pending</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Approved</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Rejected</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">Loading...</td></tr>
-                ) : (rows ?? []).length === 0 ? (
-                  <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">No campuses found</td></tr>
-                ) : (
-                  (rows ?? []).map((r: any) => (
-                    <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="py-3 px-4 font-medium">{r.name}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{r.city}</td>
-                      <td className="py-3 px-4 text-right">{r.received}</td>
-                      <td className="py-3 px-4 text-right"><Badge variant="secondary" className="text-[11px]">{r.pending}</Badge></td>
-                      <td className="py-3 px-4 text-right"><Badge className="text-[11px]">{r.approved}</Badge></td>
-                      <td className="py-3 px-4 text-right"><Badge variant="destructive" className="text-[11px]">{r.rejected}</Badge></td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <p className="text-xs text-muted-foreground">Enrollment approvals are managed by Campus Admins for each campus.</p>
-    </div>
-  );
-}
-
 function EditCampusAdminDialog({ campusAdmin, open, onOpenChange }: { campusAdmin: any; open: boolean; onOpenChange: (v: boolean) => void }) {
   const queryClient = useQueryClient();
   const [name, setName] = useState(campusAdmin.name || campusAdmin.profile?.name || "");
@@ -767,19 +673,17 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Users</h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage students, teachers, campus admins, and view enrollment stats</p>
+        <p className="text-muted-foreground text-sm mt-1">Manage students, teachers, and campus admins</p>
       </div>
       <Tabs defaultValue="students">
         <TabsList>
           <TabsTrigger value="students" className="gap-1.5"><GraduationCap className="h-4 w-4" /> Students</TabsTrigger>
           <TabsTrigger value="teachers" className="gap-1.5"><ShieldCheck className="h-4 w-4" /> Teachers</TabsTrigger>
           <TabsTrigger value="campus-admins" className="gap-1.5"><Building2 className="h-4 w-4" /> Campus Admins</TabsTrigger>
-          <TabsTrigger value="enrollments" className="gap-1.5"><ClipboardCheck className="h-4 w-4" /> Enrollments</TabsTrigger>
         </TabsList>
         <TabsContent value="students" className="mt-4"><StudentTable /></TabsContent>
         <TabsContent value="teachers" className="mt-4"><TeacherTable /></TabsContent>
         <TabsContent value="campus-admins" className="mt-4"><CampusAdminTable /></TabsContent>
-        <TabsContent value="enrollments" className="mt-4"><EnrollmentApprovals /></TabsContent>
       </Tabs>
     </div>
   );
