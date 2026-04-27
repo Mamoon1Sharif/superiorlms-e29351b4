@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Building2, LayoutDashboard, Users, ClipboardCheck, LogOut } from "lucide-react";
+import { Building2, LayoutDashboard, Users, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function CampusAdminLayout() {
@@ -29,9 +29,6 @@ export default function CampusAdminLayout() {
               </Link>
               <Link to="/campus-admin/students" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" /> Students
-              </Link>
-              <Link to="/campus-admin/enrollments" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
-                <ClipboardCheck className="h-3.5 w-3.5" /> Enrollments
               </Link>
             </nav>
           </div>

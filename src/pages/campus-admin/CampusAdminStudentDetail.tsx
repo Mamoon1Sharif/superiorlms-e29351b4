@@ -1,0 +1,204 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link, useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { ArrowLeft, BookOpen, ClipboardList, FileText } from "lucide-react";
+
+export default function CampusAdminStudentDetail() {
+  const { id: studentId } = useParams();
+
+  const { data: student } = useQuery({
+    queryKey: ["ca-student", studentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("students")
+        .select("*, classes(name), campuses(name)")
+        .eq("id", studentId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!studentId,
+  });
+
+  const { data: courseProgress } = useQuery({
+    queryKey: ["ca-student-course-progress", studentId],
+    queryFn: async () => {
+      // Get all courses available
+      const { data: courses } = await supabase.from("courses").select("id, title, status");
+      if (!courses?.length) return [];
+
+      // Get all modules grouped by course
+      const courseIds = courses.map((c) => c.id);
+      const { data: allMods } = await supabase
+        .from("modules")
+        .select("id, course_id, title, type")
+        .in("course_id", courseIds);
+
+      // Get student progress
+      const { data: prog } = await supabase
+        .from("student_progress")
+        .select("module_id, item_id, item_type, completed, score")
+        .eq("student_id", studentId!);
+
+      // Get quiz attempts
+      const { data: quizzes } = await supabase
+        .from("quiz_attempts")
+        .select("module_id, score, max_score, created_at")
+        .eq("student_id", studentId!);
+
+      // Get assignment submissions joined to modules
+      const { data: subs } = await supabase
+        .from("assignment_submissions")
+        .select("assignment_id, graded, grade, created_at, file_name, submission_text")
+        .eq("student_id", studentId!);
+
+      // Get enrollment for progress %
+      const { data: enrollments } = await supabase
+        .from("enrollments")
+        .select("course_id, progress, status")
+        .eq("student_id", studentId!);
+
+      const enrollMap: Record<string, any> = {};
+      (enrollments ?? []).forEach((e) => { enrollMap[e.course_id] = e; });
+
+      const modsByCourse: Record<string, any[]> = {};
+      (allMods ?? []).forEach((m) => {
+        modsByCourse[m.course_id] = modsByCourse[m.course_id] || [];
+        modsByCourse[m.course_id].push(m);
+      });
+
+      const result = courses
+        .map((c) => {
+          const mods = modsByCourse[c.id] ?? [];
+          if (!mods.length) return null;
+          const moduleIds = mods.map((m) => m.id);
+          const courseProg = (prog ?? []).filter((p) => moduleIds.includes(p.module_id));
+          const courseQuizzes = (quizzes ?? []).filter((q) => moduleIds.includes(q.module_id));
+          const courseSubs = (subs ?? []).filter((s) =>
+            mods.some((m) => m.type === "assignment" && m.id) // we'll match below
+          );
+
+          // Touched if any progress, quiz attempt, or submission exists
+          const touched = courseProg.length > 0 || courseQuizzes.length > 0;
+          if (!touched && !enrollMap[c.id]) return null;
+
+          const completedCount = courseProg.filter((p) => p.completed).length;
+          const totalItems = mods.length;
+          const percent = enrollMap[c.id]?.progress ?? (totalItems ? Math.round((completedCount * 100) / totalItems) : 0);
+
+          return {
+            id: c.id,
+            title: c.title,
+            modules: mods,
+            progress: percent,
+            quizzes: courseQuizzes,
+            submissions: courseSubs,
+            studentProgress: courseProg,
+            enrollmentStatus: enrollMap[c.id]?.status,
+          };
+        })
+        .filter(Boolean) as any[];
+
+      return result;
+    },
+    enabled: !!studentId,
+  });
+
+  if (!student) {
+    return <div className="text-sm text-muted-foreground">Loading…</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/campus-admin/students"><ArrowLeft className="h-4 w-4 mr-1" /> Back</Link>
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-6 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">{student.name}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{student.email}</p>
+            <div className="flex flex-wrap gap-2 mt-3 text-xs text-muted-foreground">
+              {student.reg_no && <span>Reg: {student.reg_no}</span>}
+              {student.classes?.name && <span>· {student.classes.name}</span>}
+              {student.campuses?.name && <span>· {student.campuses.name}</span>}
+              {student.phone && <span>· {student.phone}</span>}
+            </div>
+          </div>
+          <Badge
+            variant={student.approval_status === "Approved" ? "default" : student.approval_status === "Rejected" ? "destructive" : "secondary"}
+          >
+            {student.approval_status}
+          </Badge>
+        </CardContent>
+      </Card>
+
+      <div>
+        <h2 className="text-lg font-semibold mb-3">Courses</h2>
+        {!courseProgress?.length ? (
+          <Card><CardContent className="p-6 text-sm text-muted-foreground text-center">No course activity yet</CardContent></Card>
+        ) : (
+          <div className="space-y-4">
+            {courseProgress.map((c) => (
+              <Card key={c.id}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-primary" /> {c.title}
+                    </CardTitle>
+                    <span className="text-sm font-medium text-muted-foreground">{c.progress}%</span>
+                  </div>
+                  <Progress value={c.progress} className="h-1.5 mt-2" />
+                </CardHeader>
+                <CardContent className="grid gap-4 md:grid-cols-2 pt-0">
+                  <div>
+                    <p className="text-xs font-semibold mb-2 flex items-center gap-1.5"><ClipboardList className="h-3.5 w-3.5" /> Quiz Results</p>
+                    {c.quizzes.length ? (
+                      <ul className="space-y-1 text-xs">
+                        {c.quizzes.map((q: any, i: number) => {
+                          const mod = c.modules.find((m: any) => m.id === q.module_id);
+                          return (
+                            <li key={i} className="flex justify-between">
+                              <span className="truncate text-muted-foreground">{mod?.title ?? "Quiz"}</span>
+                              <span className="font-medium">{q.score}/{q.max_score}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : <p className="text-xs text-muted-foreground">No attempts</p>}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold mb-2 flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Lessons Completed</p>
+                    {c.studentProgress.length ? (
+                      <ul className="space-y-1 text-xs">
+                        {c.studentProgress.filter((p: any) => p.completed).map((p: any, i: number) => {
+                          const mod = c.modules.find((m: any) => m.id === p.module_id);
+                          return (
+                            <li key={i} className="flex justify-between">
+                              <span className="truncate text-muted-foreground">{mod?.title ?? p.item_type}</span>
+                              <span className="font-medium capitalize">{p.item_type}</span>
+                            </li>
+                          );
+                        })}
+                        {!c.studentProgress.filter((p: any) => p.completed).length && (
+                          <li className="text-muted-foreground">None yet</li>
+                        )}
+                      </ul>
+                    ) : <p className="text-xs text-muted-foreground">No progress yet</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
