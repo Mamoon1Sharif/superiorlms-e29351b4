@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
 
     const { error: caError } = await supabaseAdmin
       .from("campus_admins")
-      .insert({ user_id: userId, campus_id });
+      .insert({ user_id: userId, campus_id, name, email });
 
     if (caError) {
       return new Response(JSON.stringify({ error: caError.message }), {

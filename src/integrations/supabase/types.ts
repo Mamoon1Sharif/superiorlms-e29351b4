@@ -98,22 +98,36 @@ export type Database = {
         Row: {
           campus_id: string
           created_at: string
+          email: string | null
           id: string
+          name: string | null
           user_id: string
         }
         Insert: {
           campus_id: string
           created_at?: string
+          email?: string | null
           id?: string
+          name?: string | null
           user_id: string
         }
         Update: {
           campus_id?: string
           created_at?: string
+          email?: string | null
           id?: string
+          name?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campus_admins_campus_id_fkey"
+            columns: ["campus_id"]
+            isOneToOne: false
+            referencedRelation: "campuses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campuses: {
         Row: {
