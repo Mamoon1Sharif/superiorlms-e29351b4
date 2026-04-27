@@ -108,7 +108,7 @@ function EnrollmentStats() {
     queryKey: ["admin-enrollment-stats"],
     queryFn: async () => {
       const [{ data: enrollments, error: eErr }, { data: students, error: sErr }, { data: campuses, error: cErr }] = await Promise.all([
-        supabase.from("enrollments").select("status, student_id"),
+        supabase.from("program_enrollments").select("status, student_id"),
         supabase.from("students").select("id, campus_id"),
         supabase.from("campuses").select("id, name, city"),
       ]);
