@@ -40,6 +40,21 @@ export default function CampusAdminStudentDetail() {
         .select("id, course_id, title, type")
         .in("course_id", courseIds);
 
+      const moduleIdsAll = (allMods ?? []).map((m) => m.id);
+
+      // Count actual content items per module: lessons + quizzes (1 per module if any) + assignments
+      const [{ data: lessons }, { data: quizQs }, { data: assignmentsData }] = await Promise.all([
+        moduleIdsAll.length
+          ? supabase.from("lessons").select("id, module_id").in("module_id", moduleIdsAll)
+          : Promise.resolve({ data: [] as any[] }),
+        moduleIdsAll.length
+          ? supabase.from("quiz_questions").select("module_id").in("module_id", moduleIdsAll)
+          : Promise.resolve({ data: [] as any[] }),
+        moduleIdsAll.length
+          ? supabase.from("assignment_details").select("id, module_id").in("module_id", moduleIdsAll)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
       const { data: prog } = await supabase
         .from("student_progress")
         .select("module_id, item_id, item_type, completed, score")
@@ -56,19 +71,49 @@ export default function CampusAdminStudentDetail() {
         modsByCourse[m.course_id].push(m);
       });
 
+      // Build the set of expected content item IDs per module
+      const lessonsByModule: Record<string, string[]> = {};
+      (lessons ?? []).forEach((l: any) => {
+        (lessonsByModule[l.module_id] = lessonsByModule[l.module_id] || []).push(l.id);
+      });
+      const modulesWithQuiz = new Set((quizQs ?? []).map((q: any) => q.module_id));
+      const assignmentsByModule: Record<string, string[]> = {};
+      (assignmentsData ?? []).forEach((a: any) => {
+        (assignmentsByModule[a.module_id] = assignmentsByModule[a.module_id] || []).push(a.id);
+      });
+
       const result = courses.map((c) => {
         const mods = modsByCourse[c.id] ?? [];
         const moduleIds = mods.map((m) => m.id);
         const courseProg = (prog ?? []).filter((p) => moduleIds.includes(p.module_id));
         const courseQuizzes = (quizzes ?? []).filter((q) => moduleIds.includes(q.module_id));
 
-        // Dedupe completed modules (avoid double-counting duplicate progress rows)
-        const completedModuleIds = new Set(
-          courseProg.filter((p) => p.completed).map((p) => p.module_id)
+        // Total content items = lessons + (1 per module that has quiz questions) + assignments
+        let totalItems = 0;
+        const validItemIds = new Set<string>();
+        for (const m of mods) {
+          const lIds = lessonsByModule[m.id] ?? [];
+          totalItems += lIds.length;
+          lIds.forEach((id) => validItemIds.add(id));
+          if (modulesWithQuiz.has(m.id)) {
+            totalItems += 1;
+            // quiz item_id stored as module id by student view
+            validItemIds.add(m.id);
+          }
+          const aIds = assignmentsByModule[m.id] ?? [];
+          totalItems += aIds.length;
+          aIds.forEach((id) => validItemIds.add(id));
+        }
+
+        // Dedupe completed items by item_id, only counting valid items
+        const completedItemIds = new Set(
+          courseProg
+            .filter((p) => p.completed && validItemIds.has(p.item_id))
+            .map((p) => p.item_id)
         );
-        const totalItems = mods.length;
+        const completedCount = completedItemIds.size;
         const percent = totalItems
-          ? Math.min(100, Math.round((completedModuleIds.size * 100) / totalItems))
+          ? Math.min(100, Math.round((completedCount * 100) / totalItems))
           : 0;
 
         return {
@@ -79,7 +124,7 @@ export default function CampusAdminStudentDetail() {
           quizzes: courseQuizzes,
           submissions: [],
           studentProgress: courseProg,
-          completedCount: completedModuleIds.size,
+          completedCount,
           totalCount: totalItems,
         };
       });

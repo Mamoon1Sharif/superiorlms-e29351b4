@@ -213,9 +213,9 @@ export default function StudentCourseView() {
       </div>
 
       {(course as any).cover_url && (
-        <div className="relative w-full aspect-[21/9] rounded-xl overflow-hidden bg-muted">
+        <div className="relative w-full h-24 sm:h-32 rounded-lg overflow-hidden bg-muted">
           <img src={(course as any).cover_url} alt={course.title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-transparent to-transparent" />
         </div>
       )}
 
