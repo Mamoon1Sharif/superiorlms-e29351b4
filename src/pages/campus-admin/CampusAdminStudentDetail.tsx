@@ -208,7 +208,7 @@ export default function CampusAdminStudentDetail() {
                   </div>
                   <Progress value={c.progress} className="h-1.5 mt-2" />
                 </CardHeader>
-                <CardContent className="grid gap-4 md:grid-cols-2 pt-0">
+                <CardContent className="grid gap-4 md:grid-cols-3 pt-0">
                   <div>
                     <p className="text-xs font-semibold mb-2 flex items-center gap-1.5"><ClipboardList className="h-3.5 w-3.5" /> Quiz Results</p>
                     {c.quizzes.length ? (
@@ -216,7 +216,7 @@ export default function CampusAdminStudentDetail() {
                         {c.quizzes.map((q: any, i: number) => {
                           const mod = c.modules.find((m: any) => m.id === q.module_id);
                           return (
-                            <li key={i} className="flex justify-between">
+                            <li key={i} className="flex justify-between gap-2">
                               <span className="truncate text-muted-foreground">{mod?.title ?? "Quiz"}</span>
                               <span className="font-medium">{q.score}/{q.max_score}</span>
                             </li>
@@ -226,12 +226,33 @@ export default function CampusAdminStudentDetail() {
                     ) : <p className="text-xs text-muted-foreground">No attempts</p>}
                   </div>
                   <div>
+                    <p className="text-xs font-semibold mb-2 flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Assignments</p>
+                    {c.assignments.length ? (
+                      <ul className="space-y-1 text-xs">
+                        {c.assignments.map((a: any, i: number) => (
+                          <li key={i} className="flex justify-between gap-2">
+                            <span className="truncate text-muted-foreground">{a.module_title}</span>
+                            <span className="font-medium">
+                              {!a.submitted ? (
+                                <span className="text-muted-foreground">Not submitted</span>
+                              ) : a.graded ? (
+                                <span>Graded: {a.grade ?? 0}</span>
+                              ) : (
+                                <span>Submitted</span>
+                              )}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : <p className="text-xs text-muted-foreground">No assignments</p>}
+                  </div>
+                  <div>
                     <p className="text-xs font-semibold mb-2 flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Lessons Completed</p>
                     {(() => {
                       const seen = new Set<string>();
                       const completed = c.studentProgress.filter((p: any) => {
-                        if (!p.completed || seen.has(p.module_id)) return false;
-                        seen.add(p.module_id);
+                        if (!p.completed || p.item_type !== "video" || seen.has(p.item_id)) return false;
+                        seen.add(p.item_id);
                         return true;
                       });
                       if (!completed.length) {
@@ -242,7 +263,7 @@ export default function CampusAdminStudentDetail() {
                           {completed.map((p: any, i: number) => {
                             const mod = c.modules.find((m: any) => m.id === p.module_id);
                             return (
-                              <li key={i} className="flex justify-between">
+                              <li key={i} className="flex justify-between gap-2">
                                 <span className="truncate text-muted-foreground">{mod?.title ?? p.item_type}</span>
                                 <span className="font-medium capitalize">{p.item_type}</span>
                               </li>
