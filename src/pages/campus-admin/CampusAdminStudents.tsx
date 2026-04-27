@@ -184,10 +184,41 @@ function StudentProgress({ studentId }: { studentId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("enrollments")
-        .select("*, courses(title)")
+        .select("*")
         .eq("student_id", studentId);
       if (error) throw error;
-      return data;
+
+      // Fallback: derive progress from student_progress when no enrollment rows
+      if (!data || data.length === 0) {
+        const { data: prog } = await supabase
+          .from("student_progress")
+          .select("module_id, completed")
+          .eq("student_id", studentId);
+        if (!prog?.length) return [];
+        const moduleIds = Array.from(new Set(prog.map((p: any) => p.module_id)));
+        const { data: mods } = await supabase.from("modules").select("id, course_id").in("id", moduleIds);
+        const courseIds = Array.from(new Set((mods ?? []).map((m: any) => m.course_id)));
+        const { data: courses } = await supabase.from("courses").select("id, title").in("id", courseIds);
+        const { data: allMods } = await supabase.from("modules").select("id, course_id").in("course_id", courseIds);
+        const completedByCourse: Record<string, number> = {};
+        const totalByCourse: Record<string, number> = {};
+        (allMods ?? []).forEach((m: any) => { totalByCourse[m.course_id] = (totalByCourse[m.course_id] || 0) + 1; });
+        (mods ?? []).forEach((m: any) => {
+          const completed = prog.find((p: any) => p.module_id === m.id && p.completed);
+          if (completed) completedByCourse[m.course_id] = (completedByCourse[m.course_id] || 0) + 1;
+        });
+        return (courses ?? []).map((c: any) => ({
+          id: c.id,
+          course_title: c.title,
+          progress: totalByCourse[c.id] ? Math.round((completedByCourse[c.id] || 0) * 100 / totalByCourse[c.id]) : 0,
+        }));
+      }
+
+      const ids = data.map((e: any) => e.course_id);
+      const { data: courses } = await supabase.from("courses").select("id, title").in("id", ids);
+      const cmap: Record<string, string> = {};
+      (courses ?? []).forEach((c: any) => { cmap[c.id] = c.title; });
+      return data.map((e: any) => ({ ...e, course_title: cmap[e.course_id] }));
     },
   });
 
@@ -196,10 +227,15 @@ function StudentProgress({ studentId }: { studentId: string }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quiz_attempts")
-        .select("score, max_score, modules:module_id(title)")
+        .select("score, max_score, module_id")
         .eq("student_id", studentId);
       if (error) throw error;
-      return data;
+      const ids = Array.from(new Set((data ?? []).map((q: any) => q.module_id)));
+      if (!ids.length) return [];
+      const { data: mods } = await supabase.from("modules").select("id, title").in("id", ids);
+      const mmap: Record<string, string> = {};
+      (mods ?? []).forEach((m: any) => { mmap[m.id] = m.title; });
+      return (data ?? []).map((q: any) => ({ ...q, module_title: mmap[q.module_id] }));
     },
   });
 
@@ -224,7 +260,7 @@ function StudentProgress({ studentId }: { studentId: string }) {
             {enrollments.map((e: any) => (
               <div key={e.id} className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="truncate">{e.courses?.title}</span>
+                  <span className="truncate">{e.course_title ?? "Course"}</span>
                   <span className="text-muted-foreground">{e.progress}%</span>
                 </div>
                 <Progress value={e.progress} className="h-1.5" />
@@ -239,7 +275,7 @@ function StudentProgress({ studentId }: { studentId: string }) {
           <ul className="space-y-1 text-xs">
             {quizzes.map((q: any, i) => (
               <li key={i} className="flex justify-between">
-                <span className="truncate">{q.modules?.title ?? "Quiz"}</span>
+                <span className="truncate">{q.module_title ?? "Quiz"}</span>
                 <span className="font-medium">{q.score}/{q.max_score}</span>
               </li>
             ))}
