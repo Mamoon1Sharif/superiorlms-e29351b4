@@ -30,6 +30,9 @@ export default function CampusAdminLayout() {
               <Link to="/campus-admin/students" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" /> Students
               </Link>
+              <Link to="/campus-admin/enrollments" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+                <ClipboardCheck className="h-3.5 w-3.5" /> Enrollments
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-3">
