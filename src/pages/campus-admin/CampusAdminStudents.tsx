@@ -234,7 +234,7 @@ function StudentProgress({ studentId }: { studentId: string }) {
             {enrollments.map((e: any) => (
               <div key={e.id} className="space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="truncate">{e.courses?.title}</span>
+                  <span className="truncate">{e.course_title ?? "Course"}</span>
                   <span className="text-muted-foreground">{e.progress}%</span>
                 </div>
                 <Progress value={e.progress} className="h-1.5" />
@@ -249,7 +249,7 @@ function StudentProgress({ studentId }: { studentId: string }) {
           <ul className="space-y-1 text-xs">
             {quizzes.map((q: any, i) => (
               <li key={i} className="flex justify-between">
-                <span className="truncate">{q.modules?.title ?? "Quiz"}</span>
+                <span className="truncate">{q.module_title ?? "Quiz"}</span>
                 <span className="font-medium">{q.score}/{q.max_score}</span>
               </li>
             ))}
