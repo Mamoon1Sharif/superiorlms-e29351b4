@@ -157,22 +157,30 @@ export default function CampusAdminStudentDetail() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold mb-2 flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Lessons Completed</p>
-                    {c.studentProgress.length ? (
-                      <ul className="space-y-1 text-xs">
-                        {c.studentProgress.filter((p: any) => p.completed).map((p: any, i: number) => {
-                          const mod = c.modules.find((m: any) => m.id === p.module_id);
-                          return (
-                            <li key={i} className="flex justify-between">
-                              <span className="truncate text-muted-foreground">{mod?.title ?? p.item_type}</span>
-                              <span className="font-medium capitalize">{p.item_type}</span>
-                            </li>
-                          );
-                        })}
-                        {!c.studentProgress.filter((p: any) => p.completed).length && (
-                          <li className="text-muted-foreground">None yet</li>
-                        )}
-                      </ul>
-                    ) : <p className="text-xs text-muted-foreground">No progress yet</p>}
+                    {(() => {
+                      const seen = new Set<string>();
+                      const completed = c.studentProgress.filter((p: any) => {
+                        if (!p.completed || seen.has(p.module_id)) return false;
+                        seen.add(p.module_id);
+                        return true;
+                      });
+                      if (!completed.length) {
+                        return <p className="text-xs text-muted-foreground">None yet</p>;
+                      }
+                      return (
+                        <ul className="space-y-1 text-xs">
+                          {completed.map((p: any, i: number) => {
+                            const mod = c.modules.find((m: any) => m.id === p.module_id);
+                            return (
+                              <li key={i} className="flex justify-between">
+                                <span className="truncate text-muted-foreground">{mod?.title ?? p.item_type}</span>
+                                <span className="font-medium capitalize">{p.item_type}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      );
+                    })()}
                   </div>
                 </CardContent>
               </Card>
