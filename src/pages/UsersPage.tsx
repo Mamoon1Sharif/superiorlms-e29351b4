@@ -338,10 +338,11 @@ function StudentTable() {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Reg No</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Campus</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Class</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Courses</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Approval</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Actions</th>
                 </tr>
@@ -359,10 +360,15 @@ function StudentTable() {
                         <span className="font-medium">{u.name}</span>
                       </div>
                     </td>
+                    <td className="py-3 px-4 text-muted-foreground">{u.reg_no || "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{u.email}</td>
                     <td className="py-3 px-4 text-muted-foreground">{(u.campuses as any)?.name ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{(u.classes as any)?.name ?? "—"}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{enrollments?.filter((e) => e.student_id === u.id).length ?? 0}</td>
+                    <td className="py-3 px-4">
+                      <Badge variant={u.approval_status === "Approved" ? "default" : u.approval_status === "Rejected" ? "destructive" : "secondary"} className="text-[11px]">
+                        {u.approval_status ?? "—"}
+                      </Badge>
+                    </td>
                     <td className="py-3 px-4">
                       <Badge variant={u.status === "Active" ? "default" : "destructive"} className="text-[11px]">{u.status}</Badge>
                     </td>
