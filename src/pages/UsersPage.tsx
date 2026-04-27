@@ -601,11 +601,20 @@ function CampusAdminTable() {
     queryFn: async () => {
       const { data: admins, error: aErr } = await supabase
         .from("campus_admins")
-        .select("*, campuses(name, city)")
+        .select("*")
         .order("created_at", { ascending: false });
       if (aErr) throw aErr;
-      // Fetch matching teacher/student-style profile info from students or teachers tables won't work for campus admins.
-      // Pull names/emails from any existing rows in students or teachers as fallback, otherwise show user_id.
+
+      const campusIds = Array.from(new Set((admins ?? []).map((a: any) => a.campus_id).filter(Boolean)));
+      let campusMap: Record<string, { name?: string; city?: string }> = {};
+      if (campusIds.length) {
+        const { data: campusRows } = await supabase
+          .from("campuses")
+          .select("id, name, city")
+          .in("id", campusIds);
+        campusRows?.forEach((c: any) => { campusMap[c.id] = { name: c.name, city: c.city }; });
+      }
+
       const userIds = (admins ?? []).map((a: any) => a.user_id);
       let profiles: Record<string, { name?: string; email?: string }> = {};
       if (userIds.length) {
@@ -615,7 +624,7 @@ function CampusAdminTable() {
           .in("user_id", userIds);
         studentRows?.forEach((s: any) => { profiles[s.user_id] = { name: s.name, email: s.email }; });
       }
-      return (admins ?? []).map((a: any) => ({ ...a, profile: profiles[a.user_id] }));
+      return (admins ?? []).map((a: any) => ({ ...a, campuses: campusMap[a.campus_id], profile: profiles[a.user_id] }));
     },
   });
 
