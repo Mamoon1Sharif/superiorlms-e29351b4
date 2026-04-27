@@ -134,7 +134,7 @@ export default function CampusAdminStudentDetail() {
                     <CardTitle className="text-base flex items-center gap-2">
                       <BookOpen className="h-4 w-4 text-primary" /> {c.title}
                     </CardTitle>
-                    <span className="text-sm font-medium text-muted-foreground">{c.progress}%</span>
+                    <span className="text-sm font-medium text-muted-foreground">{c.completedCount}/{c.totalCount} · {c.progress}%</span>
                   </div>
                   <Progress value={c.progress} className="h-1.5 mt-2" />
                 </CardHeader>
