@@ -4,9 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Clock, CheckCircle2, ImageIcon, Award, AlertCircle } from "lucide-react";
+import { BookOpen, Clock, CheckCircle2, ImageIcon, Award, AlertCircle, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { getCourseCompletions } from "@/lib/courseProgress";
 
 const PROGRAM_ID = "00000000-0000-0000-0000-000000000001";
 
