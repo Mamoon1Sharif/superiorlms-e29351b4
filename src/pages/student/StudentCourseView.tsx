@@ -222,6 +222,23 @@ export default function StudentCourseView() {
     return <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">Loading...</div>;
   }
 
+  if (gating?.locked) {
+    return (
+      <Card className="max-w-lg mx-auto mt-12">
+        <CardContent className="p-8 text-center space-y-4">
+          <Lock className="h-10 w-10 text-muted-foreground mx-auto" />
+          <div>
+            <h2 className="text-lg font-semibold">Course locked</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              You must complete Course {gating.prevSeq} before starting this one.
+            </p>
+          </div>
+          <Link to="/student"><Button variant="outline" size="sm">← Back to my courses</Button></Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
