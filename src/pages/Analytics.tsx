@@ -23,18 +23,25 @@ export default function Analytics() {
     },
   });
 
+  // Disambiguate campuses sharing the same city by appending the campus name when needed
+  const cityCounts: Record<string, number> = {};
+  (campuses ?? []).forEach((c: any) => {
+    cityCounts[c.city] = (cityCounts[c.city] ?? 0) + 1;
+  });
+  const labelFor = (c: any) => (cityCounts[c.city] > 1 ? `${c.city} - ${c.name}` : c.city);
+
   // Avg progress by campus
   const campusPerformance = (campuses ?? []).map((c) => {
     const campusEnrollments = (enrollments ?? []).filter((e: any) => e.students?.campus_id === c.id);
     const avg = campusEnrollments.length > 0
       ? Math.round(campusEnrollments.reduce((s, e) => s + e.progress, 0) / campusEnrollments.length)
       : 0;
-    return { campus: c.city, avgProgress: avg };
+    return { campus: labelFor(c), avgProgress: avg };
   });
 
   // Enrollment counts by campus
   const enrollmentByCampus = (campuses ?? []).map((c) => ({
-    campus: c.city,
+    campus: labelFor(c),
     enrollments: (enrollments ?? []).filter((e: any) => e.students?.campus_id === c.id).length,
   }));
 
