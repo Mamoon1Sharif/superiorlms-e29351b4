@@ -34,11 +34,33 @@ export default function StudentCourseView() {
   const { data: student } = useQuery({
     queryKey: ["my-student", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("students").select("id").eq("user_id", user!.id).single();
+      const { data, error } = await supabase.from("students").select("id, campus_id").eq("user_id", user!.id).single();
       if (error) throw error;
       return data;
     },
     enabled: !!user,
+  });
+
+  // Sequence gating: ensure all earlier-sequence courses on this campus are complete
+  const { data: gating } = useQuery({
+    queryKey: ["course-gating", student?.id, student?.campus_id, courseId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("course_campuses")
+        .select("courses(id, sequence, status)")
+        .eq("campus_id", student!.campus_id!);
+      if (error) throw error;
+      const list = (data?.map((cc: any) => cc.courses).filter(Boolean) ?? [])
+        .filter((c: any) => c.status === "Published")
+        .sort((a: any, b: any) => (a.sequence ?? 9999) - (b.sequence ?? 9999));
+      const idx = list.findIndex((c: any) => c.id === courseId);
+      if (idx <= 0) return { locked: false, prevSeq: null as number | null };
+      const prereqIds = list.slice(0, idx).map((c: any) => c.id);
+      const completions = await getCourseCompletions(student!.id, prereqIds);
+      const allDone = prereqIds.every((id) => completions[id]?.isComplete);
+      return { locked: !allDone, prevSeq: list[idx - 1].sequence ?? idx };
+    },
+    enabled: !!student?.id && !!student?.campus_id && !!courseId,
   });
 
   const { data: course } = useQuery({
