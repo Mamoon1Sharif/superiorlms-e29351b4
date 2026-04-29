@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          favicon_url: string | null
+          id: boolean
+          login_background_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          favicon_url?: string | null
+          id?: boolean
+          login_background_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          favicon_url?: string | null
+          id?: boolean
+          login_background_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assignment_details: {
         Row: {
           created_at: string
