@@ -43,7 +43,7 @@ export default function StudentDashboard() {
     enabled: !!student,
   });
 
-  // Show all courses available for this campus once approved
+  // Show all courses available for this campus once approved (ordered by sequence)
   const { data: campusCourses } = useQuery({
     queryKey: ["campus-courses-dashboard", student?.campus_id],
     queryFn: async () => {
@@ -52,9 +52,16 @@ export default function StudentDashboard() {
         .select("courses(*)")
         .eq("campus_id", student!.campus_id!);
       if (error) throw error;
-      return (data?.map((cc: any) => cc.courses).filter(Boolean) ?? []).filter((c: any) => c.status === "Published");
+      const list = (data?.map((cc: any) => cc.courses).filter(Boolean) ?? []).filter((c: any) => c.status === "Published");
+      return list.sort((a: any, b: any) => (a.sequence ?? 9999) - (b.sequence ?? 9999));
     },
     enabled: !!student?.campus_id && programEnrollment?.status === "Approved" && student?.approval_status === "Approved",
+  });
+
+  const { data: completions } = useQuery({
+    queryKey: ["course-completions", student?.id, campusCourses?.map((c: any) => c.id).join(",")],
+    queryFn: async () => getCourseCompletions(student!.id, (campusCourses ?? []).map((c: any) => c.id)),
+    enabled: !!student && !!campusCourses?.length,
   });
 
   const applyToProgram = async () => {
