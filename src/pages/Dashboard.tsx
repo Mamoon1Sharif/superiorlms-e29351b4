@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, BookOpen, Building2, TrendingUp, MapPin, GraduationCap, Layers, PlayCircle, ClipboardCheck, FileText, UserCheck } from "lucide-react";
+import { Users, BookOpen, Building2, TrendingUp, MapPin, GraduationCap, Layers, PlayCircle, ClipboardCheck, FileText, UserCheck, ArrowLeft } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 const statusColor: Record<string, string> = {
