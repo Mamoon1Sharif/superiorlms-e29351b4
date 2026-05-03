@@ -404,7 +404,7 @@ function StudentTable() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((u) => (
+                {pagedUsers.map((u) => (
                   <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
