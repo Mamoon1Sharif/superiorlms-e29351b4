@@ -182,11 +182,22 @@ export default function StudentRegister() {
             </div>
             <div className="space-y-2">
               <Label>Class</Label>
-              <Select value={classId} onValueChange={setClassId} disabled={!campusId}>
+              <Select value={classId} onValueChange={handleClassChange} disabled={!campusId}>
                 <SelectTrigger><SelectValue placeholder={campusId ? "Select your class" : "Select a campus first"} /></SelectTrigger>
                 <SelectContent>
                   {(classes ?? []).map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Section</Label>
+              <Select value={sectionId} onValueChange={setSectionId} disabled={!classId}>
+                <SelectTrigger><SelectValue placeholder={classId ? "Select your section" : "Select a class first"} /></SelectTrigger>
+                <SelectContent>
+                  {(sectionsList ?? []).map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
