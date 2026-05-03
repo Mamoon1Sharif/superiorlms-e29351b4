@@ -38,6 +38,54 @@ export default function Analytics() {
     },
   });
 
+  // Compute real per-student overall progress (matches StudentProgressDetail logic)
+  const { data: studentProgressMap } = useQuery({
+    queryKey: ["analytics-student-progress"],
+    queryFn: async () => {
+      const [{ data: students }, { data: courses }] = await Promise.all([
+        supabase.from("students").select("id, campus_id"),
+        supabase.from("courses").select("id").eq("status", "Published"),
+      ]);
+      const courseIds = (courses ?? []).map((c: any) => c.id);
+      if (!courseIds.length || !students?.length) return { byCampus: {} as Record<string, number[]> };
+
+      const { data: mods } = await supabase
+        .from("modules").select("id, course_id").in("course_id", courseIds);
+      const moduleIds = (mods ?? []).map((m: any) => m.id);
+      if (!moduleIds.length) return { byCampus: {} as Record<string, number[]> };
+
+      const [{ data: lessons }, { data: quizQs }, { data: assignments }, { data: prog }] = await Promise.all([
+        supabase.from("lessons").select("id, module_id").in("module_id", moduleIds),
+        supabase.from("quiz_questions").select("module_id").in("module_id", moduleIds),
+        supabase.from("assignment_details").select("id, module_id").in("module_id", moduleIds),
+        supabase.from("student_progress").select("student_id, item_id, completed").in("module_id", moduleIds),
+      ]);
+
+      const valid = new Set<string>();
+      (lessons ?? []).forEach((l: any) => valid.add(l.id));
+      (assignments ?? []).forEach((a: any) => valid.add(a.id));
+      const quizModules = new Set((quizQs ?? []).map((q: any) => q.module_id));
+      quizModules.forEach((id) => valid.add(id as string));
+      const total = valid.size;
+
+      const byStudent: Record<string, Set<string>> = {};
+      (prog ?? []).forEach((p: any) => {
+        if (p.completed && valid.has(p.item_id)) {
+          (byStudent[p.student_id] = byStudent[p.student_id] ?? new Set()).add(p.item_id);
+        }
+      });
+
+      const byCampus: Record<string, number[]> = {};
+      (students ?? []).forEach((s: any) => {
+        if (!s.campus_id) return;
+        const pct = total ? Math.min(100, Math.round(((byStudent[s.id]?.size ?? 0) * 100) / total)) : 0;
+        (byCampus[s.campus_id] = byCampus[s.campus_id] ?? []).push(pct);
+      });
+
+      return { byCampus };
+    },
+  });
+
   // Disambiguate campuses sharing the same city by appending the campus name when needed
   const cityCounts: Record<string, number> = {};
   (campuses ?? []).forEach((c: any) => {
@@ -65,13 +113,16 @@ export default function Analytics() {
     })
     .filter((r) => r.enrollments > 0 || r.id !== NO_REGION);
 
+  const avgProgressForCampus = (cid: string) => {
+    const arr = studentProgressMap?.byCampus?.[cid] ?? [];
+    return arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0;
+  };
+
   const progressByRegion = regionList
     .map((r: any) => {
       const cs = campusesInRegion(r.id);
-      const allEnr = cs.flatMap((c: any) => enrollmentsForCampus(c.id));
-      const avg = allEnr.length > 0
-        ? Math.round(allEnr.reduce((s, e: any) => s + e.progress, 0) / allEnr.length)
-        : 0;
+      const all = cs.flatMap((c: any) => studentProgressMap?.byCampus?.[c.id] ?? []);
+      const avg = all.length > 0 ? Math.round(all.reduce((s, v) => s + v, 0) / all.length) : 0;
       return { id: r.id, region: r.name, avgProgress: avg };
     })
     .filter((r) => r.id !== NO_REGION || campusesInRegion(NO_REGION).length > 0);
@@ -83,13 +134,10 @@ export default function Analytics() {
     }));
 
   const progressByCampusInRegion = (rid: string) =>
-    campusesInRegion(rid).map((c: any) => {
-      const ce = enrollmentsForCampus(c.id);
-      const avg = ce.length > 0
-        ? Math.round(ce.reduce((s, e: any) => s + e.progress, 0) / ce.length)
-        : 0;
-      return { campus: labelFor(c), avgProgress: avg };
-    });
+    campusesInRegion(rid).map((c: any) => ({
+      campus: labelFor(c),
+      avgProgress: avgProgressForCampus(c.id),
+    }));
 
   const regionName = (rid: string | null) =>
     regionList.find((r: any) => r.id === rid)?.name ?? "";

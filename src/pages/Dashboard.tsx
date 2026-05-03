@@ -69,6 +69,19 @@ export default function Dashboard() {
     },
   });
 
+  const { data: recentStudents } = useQuery({
+    queryKey: ["recent-students"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("students")
+        .select("id, name, first_name, last_name, created_at, approval_status, campuses(name, regions(name)), classes(name), sections(name)")
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: regionsCount } = useCount("regions");
   const { data: classesCount } = useCount("classes");
   const { data: teachersCount } = useCount("teachers");
@@ -181,31 +194,44 @@ export default function Dashboard() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Recent Enrollments</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Recent Student Registrations</CardTitle></CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-3 px-2 font-medium text-muted-foreground">Student</th>
-                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Course</th>
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Region</th>
                   <th className="text-left py-3 px-2 font-medium text-muted-foreground">Campus</th>
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Class (Section)</th>
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Registered</th>
                   <th className="text-left py-3 px-2 font-medium text-muted-foreground">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {recentEnrollments.map((e) => (
-                  <tr key={e.id} className="border-b last:border-0">
-                    <td className="py-3 px-2 font-medium">{(e.students as any)?.name}</td>
-                    <td className="py-3 px-2 text-muted-foreground">{(e.courses as any)?.title}</td>
-                    <td className="py-3 px-2 text-muted-foreground">{(e.students as any)?.campuses?.name}</td>
-                    <td className="py-3 px-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusColor[e.status]}`}>
-                        {e.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {(recentStudents ?? []).map((s: any) => {
+                  const fullName = [s.first_name, s.last_name].filter(Boolean).join(" ") || s.name;
+                  const className = s.classes?.name
+                    ? `${s.classes.name}${s.sections?.name ? ` (${s.sections.name})` : ""}`
+                    : "—";
+                  return (
+                    <tr key={s.id} className="border-b last:border-0">
+                      <td className="py-3 px-2 font-medium">{fullName}</td>
+                      <td className="py-3 px-2 text-muted-foreground">{s.campuses?.regions?.name ?? "—"}</td>
+                      <td className="py-3 px-2 text-muted-foreground">{s.campuses?.name ?? "—"}</td>
+                      <td className="py-3 px-2 text-muted-foreground">{className}</td>
+                      <td className="py-3 px-2 text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</td>
+                      <td className="py-3 px-2">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusColor[s.approval_status] ?? ""}`}>
+                          {s.approval_status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {(recentStudents ?? []).length === 0 && (
+                  <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">No recent registrations</td></tr>
+                )}
               </tbody>
             </table>
           </div>
