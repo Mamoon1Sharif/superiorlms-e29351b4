@@ -123,6 +123,7 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
   const [regionId, setRegionId] = useState("");
   const [campusId, setCampusId] = useState(teacher.campus_id || "");
   const [classId, setClassId] = useState("");
+  const [sectionId, setSectionId] = useState("");
   const [saving, setSaving] = useState(false);
 
   const { data: regions } = useQuery({
@@ -154,12 +155,22 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
     enabled: !!campusId,
   });
 
+  const { data: sectionsList } = useQuery({
+    queryKey: ["sections-by-class-edit", classId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sections").select("*").eq("class_id", classId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!classId,
+  });
+
   const { data: currentAssignments } = useQuery({
     queryKey: ["teacher-class-assignments", teacher.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("teacher_class_assignments")
-        .select("*, classes(name, campuses(name))")
+        .select("*, classes(name, campuses(name)), sections(name)")
         .eq("teacher_id", teacher.id);
       if (error) throw error;
       return data;
@@ -168,13 +179,14 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
 
   const addClass = async () => {
     if (!classId) return;
-    if (currentAssignments?.some((a) => a.class_id === classId)) {
-      toast.error("Class already assigned");
+    const secKey = sectionId || null;
+    if (currentAssignments?.some((a) => a.class_id === classId && (a.section_id || null) === secKey)) {
+      toast.error("Class/section already assigned");
       return;
     }
     const { data, error } = await supabase
       .from("teacher_class_assignments")
-      .insert({ teacher_id: teacher.id, class_id: classId })
+      .insert({ teacher_id: teacher.id, class_id: classId, section_id: secKey })
       .select()
       .single();
     if (error) { console.error("addClass error:", error); toast.error(error.message); return; }
@@ -182,6 +194,7 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
     await queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments", teacher.id] });
     await queryClient.invalidateQueries({ queryKey: ["teacher-class-assignments-all"] });
     setClassId("");
+    setSectionId("");
     toast.success("Class assigned");
   };
 
@@ -199,10 +212,11 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
     if (error) { setSaving(false); toast.error(error.message); return; }
 
     // Auto-persist a class selected in the dropdown but not added via "Add Class"
-    if (classId && !currentAssignments?.some((a) => a.class_id === classId)) {
+    const secKey = sectionId || null;
+    if (classId && !currentAssignments?.some((a) => a.class_id === classId && (a.section_id || null) === secKey)) {
       const { error: assignErr } = await supabase
         .from("teacher_class_assignments")
-        .insert({ teacher_id: teacher.id, class_id: classId });
+        .insert({ teacher_id: teacher.id, class_id: classId, section_id: secKey });
       if (assignErr) { setSaving(false); toast.error(assignErr.message); return; }
     }
 
@@ -240,17 +254,17 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
               <div className="flex flex-wrap gap-1.5">
                 {currentAssignments.map((a: any) => (
                   <Badge key={a.id} variant="secondary" className="text-xs cursor-pointer" onClick={() => removeAssignment(a.id)}>
-                    {a.classes?.campuses?.name} · {a.classes?.name} ✕
+                    {a.classes?.campuses?.name} · {a.classes?.name}{a.sections?.name ? ` · ${a.sections.name}` : " · All sections"} ✕
                   </Badge>
                 ))}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">No classes assigned</p>
             )}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Region</Label>
-                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); }}>
+                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); setSectionId(""); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Region" /></SelectTrigger>
                   <SelectContent>
                     {regions?.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
@@ -259,7 +273,7 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
               </div>
               <div>
                 <Label className="text-xs">Campus</Label>
-                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); }} disabled={!regionId}>
+                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); setSectionId(""); }} disabled={!regionId}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Campus" /></SelectTrigger>
                   <SelectContent>
                     {campuses?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -268,10 +282,19 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
               </div>
               <div>
                 <Label className="text-xs">Class</Label>
-                <Select value={classId} onValueChange={setClassId} disabled={!campusId}>
+                <Select value={classId} onValueChange={(v) => { setClassId(v); setSectionId(""); }} disabled={!campusId}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Class" /></SelectTrigger>
                   <SelectContent>
                     {classes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Section (optional)</Label>
+                <Select value={sectionId} onValueChange={setSectionId} disabled={!classId || !sectionsList?.length}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder={sectionsList?.length ? "All sections" : "No sections"} /></SelectTrigger>
+                  <SelectContent>
+                    {sectionsList?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
