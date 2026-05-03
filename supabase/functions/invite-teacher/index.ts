@@ -17,6 +17,7 @@ Deno.serve(async (req) => {
     );
 
     const { name, email, password, campus_id, class_assignments } = await req.json();
+    // class_assignments may be: string[] (class ids) OR { class_id, section_id|null }[]
 
     if (!name || !email || !password) {
       return new Response(JSON.stringify({ error: "Name, email, and password are required" }), {
