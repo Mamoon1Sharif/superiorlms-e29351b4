@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Plus, Trash2, Download, Upload } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
-import { useRef } from "react";
+
 
 export default function InstituteManagement() {
   const queryClient = useQueryClient();
