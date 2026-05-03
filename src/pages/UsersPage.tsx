@@ -450,7 +450,9 @@ function StudentTable() {
 
 function TeacherTable() {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [editTeacher, setEditTeacher] = useState<any>(null);
+  useEffect(() => { setPage(1); }, [search]);
 
   const { data: teachers } = useQuery({
     queryKey: ["teachers"],
@@ -466,7 +468,7 @@ function TeacherTable() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("teacher_class_assignments")
-        .select("*, classes(name, campus_id, campuses(name))");
+        .select("*, classes(name, campus_id, campuses(name)), sections(name)");
       if (error) throw error;
       return data;
     },
@@ -475,6 +477,7 @@ function TeacherTable() {
   const filteredTeachers = (teachers ?? []).filter((t) =>
     t.name.toLowerCase().includes(search.toLowerCase())
   );
+  const pagedTeachers = filteredTeachers.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const getAssignedClasses = (teacherId: string) =>
     assignments?.filter((a) => a.teacher_id === teacherId) ?? [];
@@ -496,14 +499,22 @@ function TeacherTable() {
                 <tr className="border-b bg-muted/50">
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned Classes</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned Campus</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assigned Classes (Section)</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredTeachers.map((t) => {
+                {pagedTeachers.map((t) => {
                   const classAssignments = getAssignedClasses(t.id);
+                  const campusNames = Array.from(new Set(
+                    classAssignments
+                      .map((a: any) => a.classes?.campuses?.name)
+                      .filter(Boolean)
+                  ));
+                  const primaryCampus = (t as any).campuses?.name;
+                  if (primaryCampus && !campusNames.includes(primaryCampus)) campusNames.unshift(primaryCampus);
                   return (
                     <tr key={t.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4">
@@ -519,10 +530,18 @@ function TeacherTable() {
                       <td className="py-3 px-4 text-muted-foreground">{t.email}</td>
                       <td className="py-3 px-4">
                         <div className="flex flex-wrap gap-1">
+                          {campusNames.length === 0 && <span className="text-muted-foreground text-xs">None</span>}
+                          {campusNames.map((name) => (
+                            <Badge key={name} variant="outline" className="text-[10px]">{name}</Badge>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex flex-wrap gap-1">
                           {classAssignments.length === 0 && <span className="text-muted-foreground text-xs">None</span>}
                           {classAssignments.map((a: any) => (
                             <Badge key={a.id} variant="outline" className="text-[10px]">
-                              {a.classes?.campuses?.name} · {a.classes?.name}
+                              {a.classes?.name}{a.sections?.name ? ` (${a.sections.name})` : " (All sections)"}
                             </Badge>
                           ))}
                         </div>
@@ -541,6 +560,7 @@ function TeacherTable() {
               </tbody>
             </table>
           </div>
+          <PaginationBar page={page} setPage={setPage} total={filteredTeachers.length} perPage={PER_PAGE} />
         </CardContent>
       </Card>
       {editTeacher && (
