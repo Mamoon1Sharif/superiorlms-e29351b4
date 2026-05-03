@@ -14,6 +14,8 @@ interface ClassAssignment {
   classId: string;
   className: string;
   campusName: string;
+  sectionId: string | null;
+  sectionName: string | null;
 }
 
 export default function AddTeacherDialog() {
@@ -24,6 +26,7 @@ export default function AddTeacherDialog() {
   const [regionId, setRegionId] = useState("");
   const [campusId, setCampusId] = useState("");
   const [classId, setClassId] = useState("");
+  const [sectionId, setSectionId] = useState("");
   const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
