@@ -53,20 +53,9 @@ export default function CreateCourse() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [selectedCampuses, setSelectedCampuses] = useState<string[]>([]);
   const [modules, setModules] = useState<ModuleData[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const { data: campuses } = useQuery({
-    queryKey: ["campuses"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("campuses").select("id, name, city");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const toggleCampus = (id: string) => setSelectedCampuses((p) => p.includes(id) ? p.filter((c) => c !== id) : [...p, id]);
   const addModule = () => setModules((p) => [...p, { title: "", videos: [], questions: [], assignment: null }]);
   const removeModule = (i: number) => setModules((p) => p.filter((_, idx) => idx !== i));
   const updateModule = (i: number, u: Partial<ModuleData>) => setModules((p) => p.map((m, idx) => idx === i ? { ...m, ...u } : m));
@@ -79,9 +68,7 @@ export default function CreateCourse() {
       const { data: course, error: courseErr } = await supabase.from("courses").insert({ title, description, cover_url: coverUrl }).select().single();
       if (courseErr) throw courseErr;
 
-      if (selectedCampuses.length > 0) {
-        await supabase.from("course_campuses").insert(selectedCampuses.map((cid) => ({ course_id: course.id, campus_id: cid })));
-      }
+
 
       for (let i = 0; i < modules.length; i++) {
         const mod = modules[i];
@@ -148,17 +135,6 @@ export default function CreateCourse() {
           <CoverImageUpload value={coverUrl} onChange={setCoverUrl} />
           <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Full Stack Web Development" /></div>
           <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Course overview..." rows={3} /></div>
-          <div className="space-y-2">
-            <Label>Assign to Campuses</Label>
-            <div className="flex flex-wrap gap-2">
-              {(campuses ?? []).map((c) => (
-                <button key={c.id} type="button" onClick={() => toggleCampus(c.id)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${selectedCampuses.includes(c.id) ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:border-primary/50"}`}>
-                  {c.name}
-                </button>
-              ))}
-            </div>
-          </div>
         </CardContent>
       </Card>
 

@@ -36,19 +36,10 @@ export default function EditCourse() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [selectedCampuses, setSelectedCampuses] = useState<string[]>([]);
   const [modules, setModules] = useState<ModuleData[]>([]);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  const { data: campuses } = useQuery({
-    queryKey: ["campuses"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("campuses").select("id, name, city");
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const { data: course } = useQuery({
     queryKey: ["course-edit", id],
@@ -69,7 +60,7 @@ export default function EditCourse() {
       setTitle(course.title);
       setDescription(course.description ?? "");
       setCoverUrl((course as any).cover_url ?? null);
-      setSelectedCampuses((course.course_campuses as any[])?.map((cc: any) => cc.campus_id) ?? []);
+      
       const mods = ((course.modules as any[]) ?? [])
         .sort((a: any, b: any) => a.sort_order - b.sort_order)
         .map((m: any) => ({
@@ -94,7 +85,6 @@ export default function EditCourse() {
     }
   }, [course, loaded]);
 
-  const toggleCampus = (cid: string) => setSelectedCampuses((p) => p.includes(cid) ? p.filter((c) => c !== cid) : [...p, cid]);
   const addModule = () => setModules((p) => [...p, { title: "", videos: [], questions: [], assignment: null }]);
   const removeModule = (i: number) => setModules((p) => p.filter((_, idx) => idx !== i));
   const updateModule = (i: number, u: Partial<ModuleData>) => setModules((p) => p.map((m, idx) => idx === i ? { ...m, ...u } : m));
@@ -104,10 +94,6 @@ export default function EditCourse() {
     setSaving(true);
     try {
       await supabase.from("courses").update({ title, description, cover_url: coverUrl }).eq("id", id!);
-      await supabase.from("course_campuses").delete().eq("course_id", id!);
-      if (selectedCampuses.length > 0) {
-        await supabase.from("course_campuses").insert(selectedCampuses.map((cid) => ({ course_id: id!, campus_id: cid })));
-      }
       await supabase.from("modules").delete().eq("course_id", id!);
 
       for (let i = 0; i < modules.length; i++) {
@@ -172,17 +158,6 @@ export default function EditCourse() {
           <CoverImageUpload value={coverUrl} onChange={setCoverUrl} />
           <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
           <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
-          <div className="space-y-2">
-            <Label>Assign to Campuses</Label>
-            <div className="flex flex-wrap gap-2">
-              {(campuses ?? []).map((c) => (
-                <button key={c.id} type="button" onClick={() => toggleCampus(c.id)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${selectedCampuses.includes(c.id) ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:border-primary/50"}`}>
-                  {c.name}
-                </button>
-              ))}
-            </div>
-          </div>
         </CardContent>
       </Card>
 
