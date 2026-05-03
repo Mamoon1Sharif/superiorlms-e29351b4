@@ -68,9 +68,7 @@ export default function CreateCourse() {
       const { data: course, error: courseErr } = await supabase.from("courses").insert({ title, description, cover_url: coverUrl }).select().single();
       if (courseErr) throw courseErr;
 
-      if (selectedCampuses.length > 0) {
-        await supabase.from("course_campuses").insert(selectedCampuses.map((cid) => ({ course_id: course.id, campus_id: cid })));
-      }
+
 
       for (let i = 0; i < modules.length; i++) {
         const mod = modules[i];
