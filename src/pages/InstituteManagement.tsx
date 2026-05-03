@@ -58,7 +58,19 @@ export default function InstituteManagement() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("classes")
-        .select("*, campuses:campus_id(id, name, city)")
+        .select("*, campuses:campus_id(id, name, city, region_id)")
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: sections } = useQuery({
+    queryKey: ["sections-all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sections")
+        .select("*")
         .order("name");
       if (error) throw error;
       return data;
@@ -66,8 +78,8 @@ export default function InstituteManagement() {
   });
 
   const grouped = useMemo(
-    () => buildGrouped(regions ?? [], campuses ?? [], classes ?? [], search),
-    [regions, campuses, classes, search],
+    () => buildGrouped(regions ?? [], campuses ?? [], classes ?? [], sections ?? [], search),
+    [regions, campuses, classes, sections, search],
   );
 
   return (
@@ -75,7 +87,7 @@ export default function InstituteManagement() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Institute Management</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Manage your regions, campuses, and classes
+          Manage your regions, campuses, classes and sections
         </p>
       </div>
 
@@ -86,10 +98,11 @@ export default function InstituteManagement() {
         </TabsList>
 
         <TabsContent value="add" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <AddRegionCard queryClient={queryClient} />
             <AddCampusCard queryClient={queryClient} regions={regions ?? []} />
-            <AddClassCard queryClient={queryClient} campuses={campuses ?? []} />
+            <AddClassCard queryClient={queryClient} regions={regions ?? []} campuses={campuses ?? []} />
+            <AddSectionCard queryClient={queryClient} regions={regions ?? []} campuses={campuses ?? []} classes={classes ?? []} />
           </div>
           <BulkUploadCard
             queryClient={queryClient}
