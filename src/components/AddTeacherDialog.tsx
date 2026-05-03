@@ -14,6 +14,8 @@ interface ClassAssignment {
   classId: string;
   className: string;
   campusName: string;
+  sectionId: string | null;
+  sectionName: string | null;
 }
 
 export default function AddTeacherDialog() {
@@ -24,6 +26,7 @@ export default function AddTeacherDialog() {
   const [regionId, setRegionId] = useState("");
   const [campusId, setCampusId] = useState("");
   const [classId, setClassId] = useState("");
+  const [sectionId, setSectionId] = useState("");
   const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
@@ -57,22 +60,41 @@ export default function AddTeacherDialog() {
     enabled: !!campusId,
   });
 
+  const { data: sectionsList } = useQuery({
+    queryKey: ["sections-by-class-tch", classId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sections").select("*").eq("class_id", classId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!classId,
+  });
+
   const addClassAssignment = () => {
     if (!classId) return;
-    if (assignments.some((a) => a.classId === classId)) {
-      toast.error("Class already assigned");
+    const dupKey = `${classId}::${sectionId || "all"}`;
+    if (assignments.some((a) => `${a.classId}::${a.sectionId || "all"}` === dupKey)) {
+      toast.error("Class/section already assigned");
       return;
     }
     const cls = classes?.find((c) => c.id === classId);
     const campus = campuses?.find((c) => c.id === campusId);
+    const sec = sectionsList?.find((s) => s.id === sectionId);
     if (cls && campus) {
-      setAssignments([...assignments, { classId: cls.id, className: cls.name, campusName: campus.name }]);
+      setAssignments([...assignments, {
+        classId: cls.id,
+        className: cls.name,
+        campusName: campus.name,
+        sectionId: sec?.id ?? null,
+        sectionName: sec?.name ?? null,
+      }]);
       setClassId("");
+      setSectionId("");
     }
   };
 
-  const removeAssignment = (classId: string) => {
-    setAssignments(assignments.filter((a) => a.classId !== classId));
+  const removeAssignment = (key: string) => {
+    setAssignments(assignments.filter((a) => `${a.classId}::${a.sectionId || "all"}` !== key));
   };
 
   const handleSubmit = async () => {
@@ -85,11 +107,19 @@ export default function AddTeacherDialog() {
 
     // Auto-include any class selected but not yet added via "Add Class" button
     let finalAssignments = [...assignments];
-    if (classId && !finalAssignments.some((a) => a.classId === classId)) {
+    const pendingKey = `${classId}::${sectionId || "all"}`;
+    if (classId && !finalAssignments.some((a) => `${a.classId}::${a.sectionId || "all"}` === pendingKey)) {
       const cls = classes?.find((c) => c.id === classId);
       const campus = campuses?.find((c) => c.id === campusId);
+      const sec = sectionsList?.find((s) => s.id === sectionId);
       if (cls && campus) {
-        finalAssignments.push({ classId: cls.id, className: cls.name, campusName: campus.name });
+        finalAssignments.push({
+          classId: cls.id,
+          className: cls.name,
+          campusName: campus.name,
+          sectionId: sec?.id ?? null,
+          sectionName: sec?.name ?? null,
+        });
       }
     }
 
@@ -99,7 +129,7 @@ export default function AddTeacherDialog() {
         email,
         password,
         campus_id: campusId || null,
-        class_assignments: finalAssignments.map((a) => a.classId),
+        class_assignments: finalAssignments.map((a) => ({ class_id: a.classId, section_id: a.sectionId })),
       },
     });
 
@@ -129,6 +159,7 @@ export default function AddTeacherDialog() {
     setRegionId("");
     setCampusId("");
     setClassId("");
+    setSectionId("");
     setAssignments([]);
   };
 
@@ -159,10 +190,10 @@ export default function AddTeacherDialog() {
 
           <div className="border rounded-lg p-3 space-y-3">
             <p className="text-sm font-medium">Assign Classes</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Region</Label>
-                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); }}>
+                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); setSectionId(""); }}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Region" /></SelectTrigger>
                   <SelectContent>
                     {regions?.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
@@ -171,7 +202,7 @@ export default function AddTeacherDialog() {
               </div>
               <div>
                 <Label className="text-xs">Campus</Label>
-                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); }} disabled={!regionId}>
+                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); setSectionId(""); }} disabled={!regionId}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Campus" /></SelectTrigger>
                   <SelectContent>
                     {campuses?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -180,10 +211,19 @@ export default function AddTeacherDialog() {
               </div>
               <div>
                 <Label className="text-xs">Class</Label>
-                <Select value={classId} onValueChange={setClassId} disabled={!campusId}>
+                <Select value={classId} onValueChange={(v) => { setClassId(v); setSectionId(""); }} disabled={!campusId}>
                   <SelectTrigger className="h-9"><SelectValue placeholder="Class" /></SelectTrigger>
                   <SelectContent>
                     {classes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Section (optional)</Label>
+                <Select value={sectionId} onValueChange={setSectionId} disabled={!classId || !sectionsList?.length}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder={sectionsList?.length ? "All sections" : "No sections"} /></SelectTrigger>
+                  <SelectContent>
+                    {sectionsList?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -193,11 +233,14 @@ export default function AddTeacherDialog() {
             </Button>
             {assignments.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {assignments.map((a) => (
-                  <Badge key={a.classId} variant="secondary" className="text-xs cursor-pointer" onClick={() => removeAssignment(a.classId)}>
-                    {a.campusName} · {a.className} ✕
-                  </Badge>
-                ))}
+                {assignments.map((a) => {
+                  const key = `${a.classId}::${a.sectionId || "all"}`;
+                  return (
+                    <Badge key={key} variant="secondary" className="text-xs cursor-pointer" onClick={() => removeAssignment(key)}>
+                      {a.campusName} · {a.className}{a.sectionName ? ` · ${a.sectionName}` : " · All sections"} ✕
+                    </Badge>
+                  );
+                })}
               </div>
             )}
           </div>

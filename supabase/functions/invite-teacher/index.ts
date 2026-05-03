@@ -17,6 +17,7 @@ Deno.serve(async (req) => {
     );
 
     const { name, email, password, campus_id, class_assignments } = await req.json();
+    // class_assignments may be: string[] (class ids) OR { class_id, section_id|null }[]
 
     if (!name || !email || !password) {
       return new Response(JSON.stringify({ error: "Name, email, and password are required" }), {
@@ -74,12 +75,14 @@ Deno.serve(async (req) => {
 
     // 4. Create class assignments if provided
     if (class_assignments && class_assignments.length > 0) {
+      const rows = class_assignments.map((a: any) =>
+        typeof a === "string"
+          ? { teacher_id: teacher.id, class_id: a, section_id: null }
+          : { teacher_id: teacher.id, class_id: a.class_id, section_id: a.section_id || null }
+      );
       const { error: assignError } = await supabaseAdmin
         .from("teacher_class_assignments")
-        .insert(class_assignments.map((classId: string) => ({
-          teacher_id: teacher.id,
-          class_id: classId,
-        })));
+        .insert(rows);
 
       if (assignError) {
         console.error("Class assignment error:", assignError);

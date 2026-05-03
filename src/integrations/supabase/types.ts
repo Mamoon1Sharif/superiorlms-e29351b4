@@ -654,6 +654,7 @@ export type Database = {
           name: string
           phone: string | null
           reg_no: string | null
+          section_id: string | null
           status: string
           user_id: string | null
         }
@@ -671,6 +672,7 @@ export type Database = {
           name: string
           phone?: string | null
           reg_no?: string | null
+          section_id?: string | null
           status?: string
           user_id?: string | null
         }
@@ -688,6 +690,7 @@ export type Database = {
           name?: string
           phone?: string | null
           reg_no?: string | null
+          section_id?: string | null
           status?: string
           user_id?: string | null
         }
@@ -713,18 +716,21 @@ export type Database = {
           class_id: string
           created_at: string
           id: string
+          section_id: string | null
           teacher_id: string
         }
         Insert: {
           class_id: string
           created_at?: string
           id?: string
+          section_id?: string | null
           teacher_id: string
         }
         Update: {
           class_id?: string
           created_at?: string
           id?: string
+          section_id?: string | null
           teacher_id?: string
         }
         Relationships: [
