@@ -149,13 +149,6 @@ export default function Courses() {
                   <span className="flex items-center gap-1"><HelpCircle className="h-3 w-3" /> {course.quizCount} Quizzes</span>
                   <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> {course.assignmentCount} Assignments</span>
                 </div>
-                {course.campusNames.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {course.campusNames.map((c: string) => (
-                      <span key={c} className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{c}</span>
-                    ))}
-                  </div>
-                )}
               </CardContent>
             </Card>
           ))}
