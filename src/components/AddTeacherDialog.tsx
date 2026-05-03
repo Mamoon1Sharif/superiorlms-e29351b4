@@ -107,11 +107,19 @@ export default function AddTeacherDialog() {
 
     // Auto-include any class selected but not yet added via "Add Class" button
     let finalAssignments = [...assignments];
-    if (classId && !finalAssignments.some((a) => a.classId === classId)) {
+    const pendingKey = `${classId}::${sectionId || "all"}`;
+    if (classId && !finalAssignments.some((a) => `${a.classId}::${a.sectionId || "all"}` === pendingKey)) {
       const cls = classes?.find((c) => c.id === classId);
       const campus = campuses?.find((c) => c.id === campusId);
+      const sec = sectionsList?.find((s) => s.id === sectionId);
       if (cls && campus) {
-        finalAssignments.push({ classId: cls.id, className: cls.name, campusName: campus.name });
+        finalAssignments.push({
+          classId: cls.id,
+          className: cls.name,
+          campusName: campus.name,
+          sectionId: sec?.id ?? null,
+          sectionName: sec?.name ?? null,
+        });
       }
     }
 
@@ -121,7 +129,7 @@ export default function AddTeacherDialog() {
         email,
         password,
         campus_id: campusId || null,
-        class_assignments: finalAssignments.map((a) => a.classId),
+        class_assignments: finalAssignments.map((a) => ({ class_id: a.classId, section_id: a.sectionId })),
       },
     });
 
