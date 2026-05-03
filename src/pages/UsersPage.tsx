@@ -322,9 +322,30 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
   );
 }
 
+function PaginationBar({ page, setPage, total, perPage }: { page: number; setPage: (n: number) => void; total: number; perPage: number }) {
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  if (total <= perPage) return null;
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
+      <span className="text-muted-foreground">
+        Showing {Math.min((page - 1) * perPage + 1, total)}–{Math.min(page * perPage, total)} of {total}
+      </span>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</Button>
+        <span className="text-muted-foreground">Page {page} of {totalPages}</span>
+        <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Next</Button>
+      </div>
+    </div>
+  );
+}
+
+const PER_PAGE = 20;
+
 function StudentTable() {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [editStudent, setEditStudent] = useState<any>(null);
+  useEffect(() => { setPage(1); }, [search]);
 
   const { data: nonStudentUserIds } = useQuery({
     queryKey: ["non-student-user-ids"],
