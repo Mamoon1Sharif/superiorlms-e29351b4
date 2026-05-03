@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, BookOpen, Building2, TrendingUp, MapPin, GraduationCap, Layers, PlayCircle, ClipboardCheck, FileText, UserCheck } from "lucide-react";
+import { Users, BookOpen, Building2, TrendingUp, MapPin, GraduationCap, Layers, PlayCircle, ClipboardCheck, FileText, UserCheck, ArrowLeft } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 const statusColor: Record<string, string> = {
@@ -22,6 +24,15 @@ const useCount = (table: string) =>
   });
 
 export default function Dashboard() {
+  const [studentsRegionId, setStudentsRegionId] = useState<string | null>(null);
+  const { data: regions } = useQuery({
+    queryKey: ["regions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("regions").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
   const { data: campuses } = useQuery({
     queryKey: ["campuses"],
     queryFn: async () => {
@@ -73,10 +84,26 @@ export default function Dashboard() {
     ? Math.round(approvedEnrollments.reduce((sum, e) => sum + e.progress, 0) / approvedEnrollments.length)
     : 0;
 
-  const campusEnrollments = campuses?.map((c) => ({
-    campus: c.city,
-    students: students?.filter((s) => s.campus_id === c.id).length ?? 0,
-  })) ?? [];
+  const NO_REGION = "__none__";
+  const regionList = [...(regions ?? []), { id: NO_REGION, name: "Unassigned" }];
+  const cityCounts: Record<string, number> = {};
+  (campuses ?? []).forEach((c: any) => { cityCounts[c.city] = (cityCounts[c.city] ?? 0) + 1; });
+  const labelFor = (c: any) => (cityCounts[c.city] > 1 ? `${c.city} - ${c.name}` : c.city);
+  const campusesInRegion = (rid: string) => (campuses ?? []).filter((c: any) => (c.region_id ?? NO_REGION) === rid);
+  const studentsForCampus = (cid: string) => (students ?? []).filter((s: any) => s.campus_id === cid).length;
+
+  const studentsByRegion = regionList
+    .map((r: any) => ({
+      id: r.id,
+      region: r.name,
+      students: campusesInRegion(r.id).reduce((sum, c: any) => sum + studentsForCampus(c.id), 0),
+    }))
+    .filter((r) => r.students > 0 || r.id !== NO_REGION);
+
+  const studentsByCampusInRegion = (rid: string) =>
+    campusesInRegion(rid).map((c: any) => ({ campus: labelFor(c), students: studentsForCampus(c.id) }));
+
+  const regionName = (rid: string | null) => regionList.find((r: any) => r.id === rid)?.name ?? "";
 
   const completed = approvedEnrollments.filter((e) => e.progress >= 100).length;
   const inProgress = approvedEnrollments.filter((e) => e.progress > 0 && e.progress < 100).length;
@@ -114,45 +141,44 @@ export default function Dashboard() {
         <StatCard title="Approved Enrollments" value={approvedEnrollments.length} icon={UserCheck} iconColor="bg-primary/10 text-primary" />
       </div>
 
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle className="text-base">Students by Campus</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={campusEnrollments}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 20%, 90%)" />
-                <XAxis dataKey="campus" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Bar dataKey="students" fill="hsl(199, 89%, 38%)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle className="text-base">Enrollment Progress</CardTitle></CardHeader>
-          <CardContent className="flex flex-col items-center">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={courseProgress} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4}>
-                  {courseProgress.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex gap-4 mt-2">
-              {courseProgress.map((item) => (
-                <div key={item.name} className="flex items-center gap-1.5 text-xs">
-                  <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-muted-foreground">{item.name}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center justify-between gap-2">
+            <span>
+              {studentsRegionId
+                ? `Students by Campus — ${regionName(studentsRegionId)}`
+                : "Students by Region"}
+            </span>
+            {studentsRegionId && (
+              <Button variant="ghost" size="sm" onClick={() => setStudentsRegionId(null)}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={studentsRegionId ? studentsByCampusInRegion(studentsRegionId) : studentsByRegion}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 20%, 90%)" />
+              <XAxis dataKey={studentsRegionId ? "campus" : "region"} tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Bar
+                dataKey="students"
+                fill="hsl(199, 89%, 38%)"
+                radius={[6, 6, 0, 0]}
+                cursor={studentsRegionId ? "default" : "pointer"}
+                onClick={(d: any) => {
+                  if (!studentsRegionId && d?.id) setStudentsRegionId(d.id);
+                }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+          {!studentsRegionId && (
+            <p className="text-xs text-muted-foreground mt-2">Click a bar to view campuses in that region.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle className="text-base">Recent Enrollments</CardTitle></CardHeader>
