@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Download, Upload } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import * as XLSX from "xlsx";
+
 
 export default function InstituteManagement() {
   const queryClient = useQueryClient();
@@ -70,6 +72,12 @@ export default function InstituteManagement() {
             <AddCampusCard queryClient={queryClient} regions={regions ?? []} />
             <AddClassCard queryClient={queryClient} campuses={campuses ?? []} />
           </div>
+          <BulkUploadCard
+            queryClient={queryClient}
+            regions={regions ?? []}
+            campuses={campuses ?? []}
+            classes={classes ?? []}
+          />
         </TabsContent>
 
         <TabsContent value="overview">
@@ -411,6 +419,211 @@ function AddClassCard({
         >
           <Plus className="h-4 w-4 mr-1" /> Add Class
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BulkUploadCard({
+  queryClient,
+  regions,
+  campuses,
+  classes,
+}: {
+  queryClient: any;
+  regions: any[];
+  campuses: any[];
+  classes: any[];
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleDownload = () => {
+    const rows: { Region: string; Campus: string; City: string; Class: string }[] = [];
+    if (regions.length === 0 && campuses.length === 0 && classes.length === 0) {
+      rows.push(
+        { Region: "Lahore", Campus: "Main Campus", City: "Lahore", Class: "BSCS-1A" },
+        { Region: "Lahore", Campus: "Main Campus", City: "Lahore", Class: "BSCS-1B" },
+        { Region: "Karachi", Campus: "North Campus", City: "Karachi", Class: "BSCS-2A" },
+      );
+    } else {
+      for (const region of regions) {
+        const regionCampuses = campuses.filter((c: any) => c.regions?.id === region.id);
+        if (regionCampuses.length === 0) {
+          rows.push({ Region: region.name, Campus: "", City: "", Class: "" });
+          continue;
+        }
+        for (const campus of regionCampuses) {
+          const campusClasses = classes.filter((cl: any) => cl.campuses?.id === campus.id);
+          if (campusClasses.length === 0) {
+            rows.push({ Region: region.name, Campus: campus.name, City: campus.city, Class: "" });
+          } else {
+            for (const cl of campusClasses) {
+              rows.push({
+                Region: region.name,
+                Campus: campus.name,
+                City: campus.city,
+                Class: cl.name,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    const ws = XLSX.utils.json_to_sheet(rows, {
+      header: ["Region", "Campus", "City", "Class"],
+    });
+    ws["!cols"] = [{ wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 20 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Institute");
+    XLSX.writeFile(wb, "institute-template.xlsx");
+    toast.success("Template downloaded");
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<any>(ws, { defval: "" });
+
+      // Refresh current data
+      const [{ data: curRegions }, { data: curCampuses }, { data: curClasses }] =
+        await Promise.all([
+          supabase.from("regions").select("*"),
+          supabase.from("campuses").select("*"),
+          supabase.from("classes").select("*"),
+        ]);
+
+      const regionMap = new Map<string, string>(
+        (curRegions ?? []).map((r: any) => [r.name.trim().toLowerCase(), r.id]),
+      );
+      const campusKey = (name: string, city: string) =>
+        `${name.trim().toLowerCase()}|${city.trim().toLowerCase()}`;
+      const campusMap = new Map<string, string>(
+        (curCampuses ?? []).map((c: any) => [campusKey(c.name, c.city), c.id]),
+      );
+      const classKey = (name: string, campusId: string) =>
+        `${name.trim().toLowerCase()}|${campusId}`;
+      const classSet = new Set<string>(
+        (curClasses ?? []).map((c: any) => classKey(c.name, c.campus_id)),
+      );
+
+      let regionsAdded = 0,
+        campusesAdded = 0,
+        classesAdded = 0,
+        skipped = 0;
+
+      for (const row of rows) {
+        const regionName = String(row.Region ?? "").trim();
+        const campusName = String(row.Campus ?? "").trim();
+        const city = String(row.City ?? "").trim();
+        const className = String(row.Class ?? "").trim();
+
+        if (!regionName) {
+          skipped++;
+          continue;
+        }
+
+        // Region
+        let regionId = regionMap.get(regionName.toLowerCase());
+        if (!regionId) {
+          const { data, error } = await supabase
+            .from("regions")
+            .insert({ name: regionName })
+            .select()
+            .single();
+          if (error) throw error;
+          regionId = data.id;
+          regionMap.set(regionName.toLowerCase(), regionId);
+          regionsAdded++;
+        }
+
+        if (!campusName) continue;
+        if (!city) {
+          skipped++;
+          continue;
+        }
+
+        // Campus
+        let campusId = campusMap.get(campusKey(campusName, city));
+        if (!campusId) {
+          const { data, error } = await supabase
+            .from("campuses")
+            .insert({ name: campusName, city, region_id: regionId })
+            .select()
+            .single();
+          if (error) throw error;
+          campusId = data.id;
+          campusMap.set(campusKey(campusName, city), campusId);
+          campusesAdded++;
+        }
+
+        if (!className) continue;
+
+        // Class
+        const ck = classKey(className, campusId);
+        if (!classSet.has(ck)) {
+          const { error } = await supabase
+            .from("classes")
+            .insert({ name: className, campus_id: campusId });
+          if (error) throw error;
+          classSet.add(ck);
+          classesAdded++;
+        }
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["regions"] });
+      queryClient.invalidateQueries({ queryKey: ["campuses-all"] });
+      queryClient.invalidateQueries({ queryKey: ["classes-all"] });
+
+      toast.success(
+        `Imported: ${regionsAdded} region(s), ${campusesAdded} campus(es), ${classesAdded} class(es)${
+          skipped ? ` — ${skipped} row(s) skipped` : ""
+        }`,
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Failed to import file");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">Bulk Upload via Excel</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Download the template, fill in Region, Campus, City and Class columns, then upload to
+          create them in bulk. Existing entries are skipped.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={handleDownload}>
+            <Download className="h-4 w-4 mr-1" /> Download Template
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            <Upload className="h-4 w-4 mr-1" />
+            {uploading ? "Uploading..." : "Upload Excel"}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            className="hidden"
+            onChange={handleUpload}
+          />
+        </div>
       </CardContent>
     </Card>
   );
