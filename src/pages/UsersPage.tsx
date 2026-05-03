@@ -716,7 +716,7 @@ function CampusAdminTable() {
                 {error && (
                   <tr><td colSpan={7} className="py-8 text-center text-destructive text-sm">{(error as Error).message}</td></tr>
                 )}
-                {!isLoading && (campusAdmins ?? []).map((ca: any) => (
+                {!isLoading && (campusAdmins ?? []).slice((page - 1) * PER_PAGE, page * PER_PAGE).map((ca: any) => (
                   <tr key={ca.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="py-3 px-4 font-medium">{ca.name ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{ca.email ?? ca.user_id}</td>
@@ -737,6 +737,7 @@ function CampusAdminTable() {
               </tbody>
             </table>
           </div>
+          <PaginationBar page={page} setPage={setPage} total={(campusAdmins ?? []).length} perPage={PER_PAGE} />
         </CardContent>
       </Card>
       {editCampusAdmin && (
