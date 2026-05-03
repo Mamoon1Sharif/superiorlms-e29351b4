@@ -19,18 +19,24 @@ export type Database = {
           favicon_url: string | null
           id: boolean
           login_background_url: string | null
+          logo_size: number
+          logo_url: string | null
           updated_at: string
         }
         Insert: {
           favicon_url?: string | null
           id?: boolean
           login_background_url?: string | null
+          logo_size?: number
+          logo_url?: string | null
           updated_at?: string
         }
         Update: {
           favicon_url?: string | null
           id?: boolean
           login_background_url?: string | null
+          logo_size?: number
+          logo_url?: string | null
           updated_at?: string
         }
         Relationships: []
