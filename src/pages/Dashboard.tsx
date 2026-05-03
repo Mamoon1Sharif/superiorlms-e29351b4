@@ -84,10 +84,26 @@ export default function Dashboard() {
     ? Math.round(approvedEnrollments.reduce((sum, e) => sum + e.progress, 0) / approvedEnrollments.length)
     : 0;
 
-  const campusEnrollments = campuses?.map((c) => ({
-    campus: c.city,
-    students: students?.filter((s) => s.campus_id === c.id).length ?? 0,
-  })) ?? [];
+  const NO_REGION = "__none__";
+  const regionList = [...(regions ?? []), { id: NO_REGION, name: "Unassigned" }];
+  const cityCounts: Record<string, number> = {};
+  (campuses ?? []).forEach((c: any) => { cityCounts[c.city] = (cityCounts[c.city] ?? 0) + 1; });
+  const labelFor = (c: any) => (cityCounts[c.city] > 1 ? `${c.city} - ${c.name}` : c.city);
+  const campusesInRegion = (rid: string) => (campuses ?? []).filter((c: any) => (c.region_id ?? NO_REGION) === rid);
+  const studentsForCampus = (cid: string) => (students ?? []).filter((s: any) => s.campus_id === cid).length;
+
+  const studentsByRegion = regionList
+    .map((r: any) => ({
+      id: r.id,
+      region: r.name,
+      students: campusesInRegion(r.id).reduce((sum, c: any) => sum + studentsForCampus(c.id), 0),
+    }))
+    .filter((r) => r.students > 0 || r.id !== NO_REGION);
+
+  const studentsByCampusInRegion = (rid: string) =>
+    campusesInRegion(rid).map((c: any) => ({ campus: labelFor(c), students: studentsForCampus(c.id) }));
+
+  const regionName = (rid: string | null) => regionList.find((r: any) => r.id === rid)?.name ?? "";
 
   const completed = approvedEnrollments.filter((e) => e.progress >= 100).length;
   const inProgress = approvedEnrollments.filter((e) => e.progress > 0 && e.progress < 100).length;
