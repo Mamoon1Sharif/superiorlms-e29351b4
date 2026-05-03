@@ -53,15 +53,32 @@ export default function StudentRegister() {
     enabled: !!campusId,
   });
 
+  const { data: sectionsList } = useQuery({
+    queryKey: ["sections-by-class-reg", classId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sections").select("id, name").eq("class_id", classId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!classId,
+  });
+
   const handleRegionChange = (value: string) => {
     setRegionId(value);
     setCampusId("");
     setClassId("");
+    setSectionId("");
   };
 
   const handleCampusChange = (value: string) => {
     setCampusId(value);
     setClassId("");
+    setSectionId("");
+  };
+
+  const handleClassChange = (value: string) => {
+    setClassId(value);
+    setSectionId("");
   };
 
   const handleRegister = async (e: React.FormEvent) => {
