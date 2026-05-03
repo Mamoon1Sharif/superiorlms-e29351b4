@@ -135,17 +135,6 @@ export default function CreateCourse() {
           <CoverImageUpload value={coverUrl} onChange={setCoverUrl} />
           <div className="space-y-2"><Label>Title</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Full Stack Web Development" /></div>
           <div className="space-y-2"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Course overview..." rows={3} /></div>
-          <div className="space-y-2">
-            <Label>Assign to Campuses</Label>
-            <div className="flex flex-wrap gap-2">
-              {(campuses ?? []).map((c) => (
-                <button key={c.id} type="button" onClick={() => toggleCampus(c.id)}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${selectedCampuses.includes(c.id) ? "bg-primary text-primary-foreground border-primary" : "bg-muted text-muted-foreground border-border hover:border-primary/50"}`}>
-                  {c.name}
-                </button>
-              ))}
-            </div>
-          </div>
         </CardContent>
       </Card>
 
