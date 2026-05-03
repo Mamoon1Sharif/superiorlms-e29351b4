@@ -377,6 +377,7 @@ function StudentTable() {
   const filteredUsers = (users ?? [])
     .filter((u) => !nonStudentUserIds?.includes(u.user_id))
     .filter((u) => u.name.toLowerCase().includes(search.toLowerCase()));
+  const pagedUsers = filteredUsers.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   return (
     <div className="space-y-4">
