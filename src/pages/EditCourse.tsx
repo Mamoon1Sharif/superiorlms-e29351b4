@@ -60,7 +60,7 @@ export default function EditCourse() {
       setTitle(course.title);
       setDescription(course.description ?? "");
       setCoverUrl((course as any).cover_url ?? null);
-      setSelectedCampuses((course.course_campuses as any[])?.map((cc: any) => cc.campus_id) ?? []);
+      
       const mods = ((course.modules as any[]) ?? [])
         .sort((a: any, b: any) => a.sort_order - b.sort_order)
         .map((m: any) => ({
