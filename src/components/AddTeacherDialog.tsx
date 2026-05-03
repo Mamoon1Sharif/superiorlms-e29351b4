@@ -60,22 +60,41 @@ export default function AddTeacherDialog() {
     enabled: !!campusId,
   });
 
+  const { data: sectionsList } = useQuery({
+    queryKey: ["sections-by-class-tch", classId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sections").select("*").eq("class_id", classId).order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!classId,
+  });
+
   const addClassAssignment = () => {
     if (!classId) return;
-    if (assignments.some((a) => a.classId === classId)) {
-      toast.error("Class already assigned");
+    const dupKey = `${classId}::${sectionId || "all"}`;
+    if (assignments.some((a) => `${a.classId}::${a.sectionId || "all"}` === dupKey)) {
+      toast.error("Class/section already assigned");
       return;
     }
     const cls = classes?.find((c) => c.id === classId);
     const campus = campuses?.find((c) => c.id === campusId);
+    const sec = sectionsList?.find((s) => s.id === sectionId);
     if (cls && campus) {
-      setAssignments([...assignments, { classId: cls.id, className: cls.name, campusName: campus.name }]);
+      setAssignments([...assignments, {
+        classId: cls.id,
+        className: cls.name,
+        campusName: campus.name,
+        sectionId: sec?.id ?? null,
+        sectionName: sec?.name ?? null,
+      }]);
       setClassId("");
+      setSectionId("");
     }
   };
 
-  const removeAssignment = (classId: string) => {
-    setAssignments(assignments.filter((a) => a.classId !== classId));
+  const removeAssignment = (key: string) => {
+    setAssignments(assignments.filter((a) => `${a.classId}::${a.sectionId || "all"}` !== key));
   };
 
   const handleSubmit = async () => {
