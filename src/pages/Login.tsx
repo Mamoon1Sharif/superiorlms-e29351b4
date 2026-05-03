@@ -140,16 +140,14 @@ export default function Login() {
             {logoUrl ? (
               <img src={logoUrl} alt="Organization logo" style={{ height: logoSize, width: "auto" }} className="object-contain" />
             ) : (
-              <>
-                <div className="h-11 w-11 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center">
-                  <GraduationCap className="h-6 w-6" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-lg tracking-tight">Superior Group</h2>
-                  <p className="text-xs text-white/70">of Colleges</p>
-                </div>
-              </>
+              <div className="h-11 w-11 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center">
+                <GraduationCap className="h-6 w-6" />
+              </div>
             )}
+            <div>
+              <h2 className="font-bold text-lg tracking-tight">Superior Group</h2>
+              <p className="text-xs text-white/70">of Colleges</p>
+            </div>
           </div>
 
           <div className="space-y-8">
