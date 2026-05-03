@@ -373,18 +373,21 @@ function EditDialog({
   onClose,
   regions,
   campuses,
+  classes,
   queryClient,
 }: {
   target: EditTarget;
   onClose: () => void;
   regions: any[];
   campuses: any[];
+  classes: any[];
   queryClient: any;
 }) {
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [regionId, setRegionId] = useState<string>("");
   const [campusId, setCampusId] = useState<string>("");
+  const [classId, setClassId] = useState<string>("");
 
   // Sync state when target changes
   useMemo(() => {
@@ -395,8 +398,25 @@ function EditDialog({
       setRegionId(target.region_id ?? "");
     } else if (target.type === "class") {
       setCampusId(target.campus_id);
+      const cls = classes.find((c) => c.id === target.id);
+      setRegionId(cls?.campuses?.region_id ?? "");
+    } else if (target.type === "section") {
+      setClassId(target.class_id);
+      const cls = classes.find((c) => c.id === target.class_id);
+      setCampusId(cls?.campus_id ?? "");
+      setRegionId(cls?.campuses?.region_id ?? "");
     }
   }, [target]);
+
+  // Filtered options
+  const filteredCampuses = useMemo(
+    () => (regionId ? campuses.filter((c) => c.region_id === regionId) : campuses),
+    [campuses, regionId],
+  );
+  const filteredClasses = useMemo(
+    () => (campusId ? classes.filter((c) => c.campus_id === campusId) : classes),
+    [classes, campusId],
+  );
 
   const save = useMutation({
     mutationFn: async () => {
@@ -423,12 +443,19 @@ function EditDialog({
           .update({ name: name.trim(), campus_id: campusId })
           .eq("id", target.id);
         if (error) throw error;
+      } else if (target.type === "section") {
+        const { error } = await supabase
+          .from("sections")
+          .update({ name: name.trim(), class_id: classId })
+          .eq("id", target.id);
+        if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["regions"] });
       queryClient.invalidateQueries({ queryKey: ["campuses-all"] });
       queryClient.invalidateQueries({ queryKey: ["classes-all"] });
+      queryClient.invalidateQueries({ queryKey: ["sections-all"] });
       toast.success("Updated");
       onClose();
     },
@@ -463,18 +490,48 @@ function EditDialog({
               </Select>
             </div>
           )}
-          {target.type === "class" && (
+          {(target.type === "class" || target.type === "section") && (
+            <>
+              <div className="space-y-1">
+                <Label>Region</Label>
+                <Select value={regionId} onValueChange={(v) => { setRegionId(v); setCampusId(""); setClassId(""); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {regions.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Campus</Label>
+                <Select value={campusId} onValueChange={(v) => { setCampusId(v); setClassId(""); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select campus" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredCampuses.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name} — {c.city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+          {target.type === "section" && (
             <div className="space-y-1">
-              <Label>Campus</Label>
-              <Select value={campusId} onValueChange={setCampusId}>
+              <Label>Class</Label>
+              <Select value={classId} onValueChange={setClassId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select campus" />
+                  <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
-                  {campuses.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name} — {c.city}
-                    </SelectItem>
+                  {filteredClasses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -501,7 +558,8 @@ function EditDialog({
               save.isPending ||
               !name.trim() ||
               (target.type === "campus" && !city.trim()) ||
-              (target.type === "class" && !campusId)
+              (target.type === "class" && !campusId) ||
+              (target.type === "section" && !classId)
             }
           >
             Save
@@ -517,11 +575,14 @@ function DeleteButton({
   id,
   queryClient,
 }: {
-  type: "region" | "campus" | "class";
+  type: "region" | "campus" | "class" | "section";
   id: string;
   queryClient: any;
 }) {
-  const table = type === "region" ? "regions" : type === "campus" ? "campuses" : "classes";
+  const table =
+    type === "region" ? "regions" :
+    type === "campus" ? "campuses" :
+    type === "class" ? "classes" : "sections";
   const deleteMut = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from(table).delete().eq("id", id);
@@ -531,6 +592,7 @@ function DeleteButton({
       queryClient.invalidateQueries({ queryKey: ["regions"] });
       queryClient.invalidateQueries({ queryKey: ["campuses-all"] });
       queryClient.invalidateQueries({ queryKey: ["classes-all"] });
+      queryClient.invalidateQueries({ queryKey: ["sections-all"] });
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted`);
     },
     onError: (e: Error) => toast.error(e.message),
