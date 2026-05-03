@@ -126,6 +126,17 @@ function EditTeacherDialog({ teacher, open, onOpenChange }: { teacher: any; open
   const [sectionId, setSectionId] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Preload region from teacher's campus so the cascading dropdowns aren't empty
+  useEffect(() => {
+    (async () => {
+      if (teacher.campus_id && !regionId) {
+        const { data } = await supabase.from("campuses").select("region_id").eq("id", teacher.campus_id).maybeSingle();
+        if (data?.region_id) setRegionId(data.region_id);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teacher.campus_id]);
+
   const { data: regions } = useQuery({
     queryKey: ["regions"],
     queryFn: async () => {
