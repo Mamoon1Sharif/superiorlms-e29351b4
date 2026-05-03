@@ -69,6 +69,19 @@ export default function Dashboard() {
     },
   });
 
+  const { data: recentStudents } = useQuery({
+    queryKey: ["recent-students"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("students")
+        .select("id, name, first_name, last_name, created_at, approval_status, campuses(name, regions(name)), classes(name), sections(name)")
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: regionsCount } = useCount("regions");
   const { data: classesCount } = useCount("classes");
   const { data: teachersCount } = useCount("teachers");
