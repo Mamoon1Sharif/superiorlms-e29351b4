@@ -159,6 +159,7 @@ export default function AddTeacherDialog() {
     setRegionId("");
     setCampusId("");
     setClassId("");
+    setSectionId("");
     setAssignments([]);
   };
 
