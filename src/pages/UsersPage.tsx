@@ -438,6 +438,7 @@ function StudentTable() {
               </tbody>
             </table>
           </div>
+          <PaginationBar page={page} setPage={setPage} total={filteredUsers.length} perPage={PER_PAGE} />
         </CardContent>
       </Card>
       {editStudent && (
