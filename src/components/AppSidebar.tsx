@@ -6,10 +6,10 @@ import {
   BarChart3,
   Bell,
   Settings,
-  GraduationCap,
   LogOut,
   Landmark,
 } from "lucide-react";
+import brandLogo from "@/assets/superior-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,16 +58,21 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <GraduationCap className="h-5 w-5" />
-          </div>
+          <img
+            src={brandLogo}
+            alt="Superior Group of Colleges logo"
+            width={36}
+            height={36}
+            loading="lazy"
+            className="h-9 w-9 object-contain shrink-0"
+          />
           {!collapsed && (
-            <div className="flex flex-col">
+            <div className="flex flex-col leading-tight">
               <span className="text-sm font-bold text-sidebar-primary-foreground tracking-tight">
-                EduAdmin
+                Superior Group
               </span>
               <span className="text-[11px] text-sidebar-foreground/60">
-                Learning Management
+                of Colleges
               </span>
             </div>
           )}

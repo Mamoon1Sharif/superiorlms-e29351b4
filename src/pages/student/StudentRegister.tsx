@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import brandLogo from "@/assets/superior-logo.png";
 import { toast } from "sonner";
 
 export default function StudentRegister() {
@@ -122,13 +123,12 @@ export default function StudentRegister() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-3">
-            <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
-              <GraduationCap className="h-6 w-6 text-primary-foreground" />
-            </div>
+          <div className="flex flex-col items-center gap-2 mb-3">
+            <img src={brandLogo} alt="Superior Group of Colleges logo" width={56} height={56} className="h-14 w-14 object-contain" />
+            <span className="font-bold text-sm tracking-tight">Superior Group of Colleges</span>
           </div>
           <CardTitle className="text-xl">Create your account</CardTitle>
-          <CardDescription>Join EduAdmin to access your courses</CardDescription>
+          <CardDescription>Join Superior Group of Colleges to access your courses</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
