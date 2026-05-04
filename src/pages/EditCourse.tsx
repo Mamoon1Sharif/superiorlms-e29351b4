@@ -110,7 +110,7 @@ export default function EditCourse() {
 
         const validVideos = mod.videos.filter((v) => v.title.trim());
         if (validVideos.length > 0) {
-          await supabase.from("lessons").insert(validVideos.map((v, vi) => ({ module_id: dbMod.id, title: v.title, description: v.description, youtube_url: v.youtube_url, sort_order: vi })));
+          await supabase.from("lessons").insert(validVideos.map((v, vi) => ({ module_id: dbMod.id, title: v.title, description: v.description, youtube_url: v.youtube_url, thumbnail_url: v.thumbnail_url, sort_order: vi })));
         }
 
         const validQs = mod.questions.filter((q) => q.question.trim());
@@ -125,7 +125,7 @@ export default function EditCourse() {
         if (mod.assignment && mod.assignment.instructions.trim()) {
           await supabase.from("assignment_details").insert({
             module_id: dbMod.id, instructions: mod.assignment.instructions,
-            deadline: mod.assignment.deadline || null, max_marks: mod.assignment.max_marks,
+            pdf_url: mod.assignment.pdf_url, max_marks: mod.assignment.max_marks,
             max_file_size_mb: mod.assignment.max_file_size_mb,
           });
         }
