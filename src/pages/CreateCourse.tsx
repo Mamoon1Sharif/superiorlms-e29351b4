@@ -31,7 +31,7 @@ interface QuizQuestion {
 
 interface AssignmentDetail {
   instructions: string;
-  deadline: string;
+  pdf_url: string | null;
   max_marks: number;
   max_file_size_mb: number;
 }
@@ -43,11 +43,11 @@ interface ModuleData {
   assignment: AssignmentDetail | null;
 }
 
-const emptyVideo = (): VideoLesson => ({ title: "", description: "", youtube_url: "" });
+const emptyVideo = (): VideoLesson => ({ title: "", description: "", youtube_url: "", thumbnail_url: null });
 const emptyMcq = (): QuizQuestion => ({ question: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: 0, correct_answer_text: "" });
 const emptyTrueFalse = (): QuizQuestion => ({ question: "", question_type: "true_false", options: ["True", "False"], correct_answer: 0, correct_answer_text: "" });
 const emptyFillBlank = (): QuizQuestion => ({ question: "", question_type: "fill_blank", options: [], correct_answer: 0, correct_answer_text: "" });
-const emptyAssignment = (): AssignmentDetail => ({ instructions: "", deadline: "", max_marks: 100, max_file_size_mb: 10 });
+const emptyAssignment = (): AssignmentDetail => ({ instructions: "", pdf_url: null, max_marks: 100, max_file_size_mb: 10 });
 
 export default function CreateCourse() {
   const navigate = useNavigate();
