@@ -13,7 +13,8 @@ interface AssignmentSubmissionProps {
   assignment: {
     id: string;
     instructions: string;
-    deadline: string | null;
+    deadline?: string | null;
+    pdf_url?: string | null;
     max_marks: number;
     max_file_size_mb?: number;
     module_id: string;
