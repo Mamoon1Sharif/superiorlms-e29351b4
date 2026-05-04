@@ -11,10 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Video, HelpCircle, FileText, ArrowLeft, Save, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import CoverImageUpload from "@/components/CoverImageUpload";
+import FileUploadField from "@/components/FileUploadField";
 
-interface VideoLesson { title: string; description: string; youtube_url: string; }
+interface VideoLesson { title: string; description: string; youtube_url: string; thumbnail_url: string | null; }
 interface QuizQuestion { question: string; question_type: "mcq" | "true_false" | "fill_blank"; options: string[]; correct_answer: number; correct_answer_text: string; }
-interface AssignmentDetail { instructions: string; deadline: string; max_marks: number; max_file_size_mb: number; }
+interface AssignmentDetail { instructions: string; pdf_url: string | null; max_marks: number; max_file_size_mb: number; }
 interface ModuleData {
   id?: string;
   title: string;
@@ -23,11 +24,11 @@ interface ModuleData {
   assignment: AssignmentDetail | null;
 }
 
-const emptyVideo = (): VideoLesson => ({ title: "", description: "", youtube_url: "" });
+const emptyVideo = (): VideoLesson => ({ title: "", description: "", youtube_url: "", thumbnail_url: null });
 const emptyMcq = (): QuizQuestion => ({ question: "", question_type: "mcq", options: ["", "", "", ""], correct_answer: 0, correct_answer_text: "" });
 const emptyTrueFalse = (): QuizQuestion => ({ question: "", question_type: "true_false", options: ["True", "False"], correct_answer: 0, correct_answer_text: "" });
 const emptyFillBlank = (): QuizQuestion => ({ question: "", question_type: "fill_blank", options: [], correct_answer: 0, correct_answer_text: "" });
-const emptyAssignment = (): AssignmentDetail => ({ instructions: "", deadline: "", max_marks: 100, max_file_size_mb: 10 });
+const emptyAssignment = (): AssignmentDetail => ({ instructions: "", pdf_url: null, max_marks: 100, max_file_size_mb: 10 });
 
 export default function EditCourse() {
   const { id } = useParams();
@@ -67,7 +68,7 @@ export default function EditCourse() {
           id: m.id,
           title: m.title,
           videos: (m.lessons ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((l: any) => ({
-            title: l.title, description: l.description ?? "", youtube_url: l.youtube_url ?? "",
+            title: l.title, description: l.description ?? "", youtube_url: l.youtube_url ?? "", thumbnail_url: l.thumbnail_url ?? null,
           })),
           questions: (m.quiz_questions ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((q: any) => ({
             question: q.question,
@@ -77,7 +78,7 @@ export default function EditCourse() {
             correct_answer_text: q.correct_answer_text ?? "",
           })),
           assignment: m.assignment_details?.[0]
-            ? { instructions: m.assignment_details[0].instructions, deadline: m.assignment_details[0].deadline?.slice(0, 16) ?? "", max_marks: m.assignment_details[0].max_marks, max_file_size_mb: m.assignment_details[0].max_file_size_mb ?? 10 }
+            ? { instructions: m.assignment_details[0].instructions, pdf_url: m.assignment_details[0].pdf_url ?? null, max_marks: m.assignment_details[0].max_marks, max_file_size_mb: m.assignment_details[0].max_file_size_mb ?? 10 }
             : null,
         }));
       setModules(mods.length > 0 ? mods : []);
@@ -109,7 +110,7 @@ export default function EditCourse() {
 
         const validVideos = mod.videos.filter((v) => v.title.trim());
         if (validVideos.length > 0) {
-          await supabase.from("lessons").insert(validVideos.map((v, vi) => ({ module_id: dbMod.id, title: v.title, description: v.description, youtube_url: v.youtube_url, sort_order: vi })));
+          await supabase.from("lessons").insert(validVideos.map((v, vi) => ({ module_id: dbMod.id, title: v.title, description: v.description, youtube_url: v.youtube_url, thumbnail_url: v.thumbnail_url, sort_order: vi })));
         }
 
         const validQs = mod.questions.filter((q) => q.question.trim());
@@ -124,7 +125,7 @@ export default function EditCourse() {
         if (mod.assignment && mod.assignment.instructions.trim()) {
           await supabase.from("assignment_details").insert({
             module_id: dbMod.id, instructions: mod.assignment.instructions,
-            deadline: mod.assignment.deadline || null, max_marks: mod.assignment.max_marks,
+            pdf_url: mod.assignment.pdf_url, max_marks: mod.assignment.max_marks,
             max_file_size_mb: mod.assignment.max_file_size_mb,
           });
         }
@@ -220,6 +221,15 @@ function ModuleEditor({ mod, modIdx, updateModule, removeModule }: {
                 </div>
                 <Input placeholder="Title" value={vid.title} onChange={(e) => { const v = [...mod.videos]; v[vi] = { ...v[vi], title: e.target.value }; updateModule(modIdx, { videos: v }); }} />
                 <Input placeholder="YouTube URL" value={vid.youtube_url} onChange={(e) => { const v = [...mod.videos]; v[vi] = { ...v[vi], youtube_url: e.target.value }; updateModule(modIdx, { videos: v }); }} />
+                <FileUploadField
+                  value={vid.thumbnail_url}
+                  onChange={(url) => { const v = [...mod.videos]; v[vi] = { ...v[vi], thumbnail_url: url }; updateModule(modIdx, { videos: v }); }}
+                  bucket="video-thumbnails"
+                  accept="image/*"
+                  kind="image"
+                  label="Video thumbnail"
+                  maxSizeMB={5}
+                />
               </div>
             ))}
           </div>
@@ -241,10 +251,18 @@ function ModuleEditor({ mod, modIdx, updateModule, removeModule }: {
               <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={toggleAssignment}><Trash2 className="h-3 w-3" /></Button>
             </div>
             <Textarea placeholder="Instructions..." value={mod.assignment.instructions} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, instructions: e.target.value } })} rows={3} />
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1"><Label className="text-xs">Deadline</Label><Input type="datetime-local" value={mod.assignment.deadline} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, deadline: e.target.value } })} /></div>
+            <FileUploadField
+              value={mod.assignment.pdf_url}
+              onChange={(url) => updateModule(modIdx, { assignment: { ...mod.assignment!, pdf_url: url } })}
+              bucket="assignment-pdfs"
+              accept="application/pdf"
+              kind="pdf"
+              label="Assignment PDF (optional)"
+              maxSizeMB={20}
+            />
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1"><Label className="text-xs">Max Marks</Label><Input type="number" value={mod.assignment.max_marks} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, max_marks: parseInt(e.target.value) || 0 } })} /></div>
-              <div className="space-y-1"><Label className="text-xs">Max File (MB)</Label><Input type="number" value={mod.assignment.max_file_size_mb} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, max_file_size_mb: parseInt(e.target.value) || 10 } })} /></div>
+              <div className="space-y-1"><Label className="text-xs">Max Submission File (MB)</Label><Input type="number" value={mod.assignment.max_file_size_mb} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, max_file_size_mb: parseInt(e.target.value) || 10 } })} /></div>
             </div>
           </div>
         )}

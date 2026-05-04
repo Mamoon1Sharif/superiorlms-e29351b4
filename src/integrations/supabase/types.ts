@@ -50,6 +50,7 @@ export type Database = {
           max_file_size_mb: number
           max_marks: number
           module_id: string
+          pdf_url: string | null
         }
         Insert: {
           created_at?: string
@@ -59,6 +60,7 @@ export type Database = {
           max_file_size_mb?: number
           max_marks?: number
           module_id: string
+          pdf_url?: string | null
         }
         Update: {
           created_at?: string
@@ -68,6 +70,7 @@ export type Database = {
           max_file_size_mb?: number
           max_marks?: number
           module_id?: string
+          pdf_url?: string | null
         }
         Relationships: [
           {
@@ -338,6 +341,7 @@ export type Database = {
           id: string
           module_id: string
           sort_order: number
+          thumbnail_url: string | null
           title: string
           youtube_url: string | null
         }
@@ -347,6 +351,7 @@ export type Database = {
           id?: string
           module_id: string
           sort_order?: number
+          thumbnail_url?: string | null
           title: string
           youtube_url?: string | null
         }
@@ -356,6 +361,7 @@ export type Database = {
           id?: string
           module_id?: string
           sort_order?: number
+          thumbnail_url?: string | null
           title?: string
           youtube_url?: string | null
         }

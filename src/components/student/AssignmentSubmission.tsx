@@ -5,15 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, FileText, Calendar, Award, Upload, X, Paperclip } from "lucide-react";
+import { CheckCircle2, FileText, Award, Upload, X, Paperclip } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
 
 interface AssignmentSubmissionProps {
   assignment: {
     id: string;
     instructions: string;
-    deadline: string | null;
+    deadline?: string | null;
+    pdf_url?: string | null;
     max_marks: number;
     max_file_size_mb?: number;
     module_id: string;
@@ -113,8 +113,6 @@ export default function AssignmentSubmission({ assignment, studentId, completed,
     );
   }
 
-  const isOverdue = assignment.deadline && new Date(assignment.deadline) < new Date();
-
   if (existingSubmission || completed) {
     return (
       <Card>
@@ -170,21 +168,24 @@ export default function AssignmentSubmission({ assignment, studentId, completed,
             <Award className="h-3.5 w-3.5" /> {assignment.max_marks} marks
           </div>
         </div>
-        {assignment.deadline && (
-          <div className="flex items-center gap-1.5 text-xs mt-1">
-            <Calendar className="h-3.5 w-3.5" />
-            <span className={isOverdue ? "text-destructive" : "text-muted-foreground"}>
-              Due: {format(new Date(assignment.deadline), "PPp")}
-              {isOverdue && " (Overdue)"}
-            </span>
-          </div>
-        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="p-4 rounded-lg bg-muted/50 border">
           <p className="text-sm font-medium mb-1">Instructions:</p>
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">{assignment.instructions}</p>
         </div>
+
+        {assignment.pdf_url && (
+          <a
+            href={assignment.pdf_url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 p-3 rounded-lg border bg-muted/30 hover:bg-muted transition-colors"
+          >
+            <FileText className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm text-primary underline truncate flex-1">Download assignment PDF</span>
+          </a>
+        )}
 
         <div className="space-y-2">
           <p className="text-sm font-medium">Description / Comments:</p>
