@@ -1,6 +1,7 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { GraduationCap, BookOpen, LayoutDashboard, LogOut } from "lucide-react";
+import { BookOpen, LayoutDashboard, LogOut } from "lucide-react";
+import brandLogo from "@/assets/superior-logo.png";
 import { Button } from "@/components/ui/button";
 
 export default function StudentLayout() {
@@ -19,10 +20,8 @@ export default function StudentLayout() {
         <div className="container flex h-14 items-center justify-between">
           <div className="flex items-center gap-6">
             <Link to="/student" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <GraduationCap className="h-4 w-4 text-primary-foreground" />
-              </div>
-              <span className="font-bold text-sm tracking-tight">EduAdmin</span>
+              <img src={brandLogo} alt="Superior Group of Colleges logo" width={32} height={32} className="h-8 w-8 object-contain" loading="lazy" />
+              <span className="font-bold text-sm tracking-tight">Superior Group of Colleges</span>
             </Link>
             <nav className="flex items-center gap-1">
               <Link to="/student" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
