@@ -89,7 +89,7 @@ export default function CreateCourse() {
         const validVideos = mod.videos.filter((v) => v.title.trim());
         if (validVideos.length > 0) {
           await supabase.from("lessons").insert(validVideos.map((v, vi) => ({
-            module_id: dbModule.id, title: v.title, description: v.description, youtube_url: v.youtube_url, sort_order: vi,
+            module_id: dbModule.id, title: v.title, description: v.description, youtube_url: v.youtube_url, thumbnail_url: v.thumbnail_url, sort_order: vi,
           })));
         }
 
@@ -105,7 +105,7 @@ export default function CreateCourse() {
         if (mod.assignment && mod.assignment.instructions.trim()) {
           await supabase.from("assignment_details").insert({
             module_id: dbModule.id, instructions: mod.assignment.instructions,
-            deadline: mod.assignment.deadline || null, max_marks: mod.assignment.max_marks,
+            pdf_url: mod.assignment.pdf_url, max_marks: mod.assignment.max_marks,
             max_file_size_mb: mod.assignment.max_file_size_mb,
           });
         }
