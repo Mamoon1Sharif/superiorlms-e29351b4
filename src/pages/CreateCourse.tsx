@@ -12,11 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Video, HelpCircle, FileText, ArrowLeft, Save, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import CoverImageUpload from "@/components/CoverImageUpload";
+import FileUploadField from "@/components/FileUploadField";
 
 interface VideoLesson {
   title: string;
   description: string;
   youtube_url: string;
+  thumbnail_url: string | null;
 }
 
 interface QuizQuestion {
