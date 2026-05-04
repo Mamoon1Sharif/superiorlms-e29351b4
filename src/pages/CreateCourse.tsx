@@ -208,6 +208,15 @@ function ModuleEditor({ mod, modIdx, updateModule, removeModule }: {
                 </div>
                 <Input placeholder="Title" value={vid.title} onChange={(e) => { const v = [...mod.videos]; v[vi] = { ...v[vi], title: e.target.value }; updateModule(modIdx, { videos: v }); }} />
                 <Input placeholder="YouTube URL" value={vid.youtube_url} onChange={(e) => { const v = [...mod.videos]; v[vi] = { ...v[vi], youtube_url: e.target.value }; updateModule(modIdx, { videos: v }); }} />
+                <FileUploadField
+                  value={vid.thumbnail_url}
+                  onChange={(url) => { const v = [...mod.videos]; v[vi] = { ...v[vi], thumbnail_url: url }; updateModule(modIdx, { videos: v }); }}
+                  bucket="video-thumbnails"
+                  accept="image/*"
+                  kind="image"
+                  label="Video thumbnail"
+                  maxSizeMB={5}
+                />
               </div>
             ))}
           </div>
