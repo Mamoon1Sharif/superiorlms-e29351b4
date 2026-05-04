@@ -32,7 +32,7 @@ export default function Analytics() {
   const { data: enrollments } = useQuery({
     queryKey: ["enrollments-analytics"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("enrollments").select("*, students(campus_id)");
+      const { data, error } = await supabase.from("program_enrollments").select("*, students(campus_id)");
       if (error) throw error;
       return data;
     },
