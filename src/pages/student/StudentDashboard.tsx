@@ -8,6 +8,7 @@ import { BookOpen, Clock, CheckCircle2, ImageIcon, Award, AlertCircle, Lock } fr
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { getCourseCompletions } from "@/lib/courseProgress";
+import digitalSkillProgram from "@/assets/digital-skill-program.jpeg";
 
 const PROGRAM_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -91,7 +92,24 @@ export default function StudentDashboard() {
       </div>
 
       {/* Program enrollment card */}
-      <Card>
+      <Card className="overflow-hidden">
+        {!fullyApproved ? (
+          <div className="bg-[#0b1f4a]">
+            <img
+              src={digitalSkillProgram}
+              alt="Digital Skill Certification — 8 in-demand skills"
+              className="w-full h-auto object-contain max-h-[460px] mx-auto"
+            />
+          </div>
+        ) : (
+          <div className="bg-[#0b1f4a] flex justify-center">
+            <img
+              src={digitalSkillProgram}
+              alt="Digital Skill Certification"
+              className="h-24 w-auto object-contain"
+            />
+          </div>
+        )}
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
