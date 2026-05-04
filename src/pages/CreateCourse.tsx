@@ -240,10 +240,18 @@ function ModuleEditor({ mod, modIdx, updateModule, removeModule }: {
               <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={toggleAssignment}><Trash2 className="h-3 w-3" /></Button>
             </div>
             <Textarea placeholder="Instructions..." value={mod.assignment.instructions} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, instructions: e.target.value } })} rows={3} />
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1"><Label className="text-xs">Deadline</Label><Input type="datetime-local" value={mod.assignment.deadline} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, deadline: e.target.value } })} /></div>
+            <FileUploadField
+              value={mod.assignment.pdf_url}
+              onChange={(url) => updateModule(modIdx, { assignment: { ...mod.assignment!, pdf_url: url } })}
+              bucket="assignment-pdfs"
+              accept="application/pdf"
+              kind="pdf"
+              label="Assignment PDF (optional)"
+              maxSizeMB={20}
+            />
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1"><Label className="text-xs">Max Marks</Label><Input type="number" value={mod.assignment.max_marks} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, max_marks: parseInt(e.target.value) || 0 } })} /></div>
-              <div className="space-y-1"><Label className="text-xs">Max File (MB)</Label><Input type="number" value={mod.assignment.max_file_size_mb} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, max_file_size_mb: parseInt(e.target.value) || 10 } })} /></div>
+              <div className="space-y-1"><Label className="text-xs">Max Submission File (MB)</Label><Input type="number" value={mod.assignment.max_file_size_mb} onChange={(e) => updateModule(modIdx, { assignment: { ...mod.assignment!, max_file_size_mb: parseInt(e.target.value) || 10 } })} /></div>
             </div>
           </div>
         )}
