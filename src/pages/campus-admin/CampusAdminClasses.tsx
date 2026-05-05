@@ -86,10 +86,16 @@ export default function CampusAdminClasses() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("*, sections(name)")
+        .select("*")
         .eq("campus_id", campusId);
       if (error) throw error;
-      return data;
+      const sectionIds = Array.from(new Set((data ?? []).map((s: any) => s.section_id).filter(Boolean)));
+      let secMap: Record<string, string> = {};
+      if (sectionIds.length) {
+        const { data: secs } = await supabase.from("sections").select("id, name").in("id", sectionIds);
+        (secs ?? []).forEach((s: any) => { secMap[s.id] = s.name; });
+      }
+      return (data ?? []).map((s: any) => ({ ...s, sections: s.section_id ? { name: secMap[s.section_id] } : null }));
     },
     enabled: !!campusId,
   });
