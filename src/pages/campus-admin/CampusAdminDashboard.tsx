@@ -238,7 +238,7 @@ export default function CampusAdminDashboard() {
           )}
         </SectionCard>
 
-        <SectionCard title="Top Students by Progress" to="/campus-admin/classes" empty="No approved students yet">
+        <SectionCard title="Students Progress" to="/campus-admin/classes" empty="No approved students yet">
           {(students?.length ?? 0) > 0 && <TopStudents students={students!} />}
         </SectionCard>
       </div>
