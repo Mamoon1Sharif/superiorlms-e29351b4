@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import UserMenu from "@/components/UserMenu";
 
 export function DashboardLayout() {
   return (
@@ -13,6 +14,7 @@ export function DashboardLayout() {
             <SidebarTrigger />
             <div className="flex-1" />
             <ThemeSwitcher />
+            <UserMenu />
           </header>
           <main className="flex-1 overflow-auto p-6">
             <Outlet />

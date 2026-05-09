@@ -1,19 +1,14 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Building2, LayoutDashboard, Users, LogOut, GraduationCap, BookOpen, School } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Building2, LayoutDashboard, Users, GraduationCap, BookOpen, School } from "lucide-react";
+import UserMenu from "@/components/UserMenu";
 
 export default function CampusAdminLayout() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>;
   if (!user) return null;
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/login");
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,10 +55,7 @@ export default function CampusAdminLayout() {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">{user.email}</span>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground">
-              <LogOut className="h-4 w-4 mr-1" /> Logout
-            </Button>
+            <UserMenu />
           </div>
         </div>
       </header>

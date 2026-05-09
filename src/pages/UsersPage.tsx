@@ -345,6 +345,7 @@ function StudentTable() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [editStudent, setEditStudent] = useState<any>(null);
+  const [resetStudent, setResetStudent] = useState<any>(null);
   useEffect(() => { setPage(1); }, [search]);
 
   const { data: nonStudentUserIds } = useQuery({
@@ -429,8 +430,11 @@ function StudentTable() {
                       <Badge variant={u.status === "Active" ? "default" : "destructive"} className="text-[11px]">{u.status}</Badge>
                     </td>
                     <td className="py-3 px-4">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditStudent(u)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditStudent(u)} title="Edit">
                         <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setResetStudent(u)} title="Reset password">
+                        <KeyRound className="h-3.5 w-3.5" />
                       </Button>
                     </td>
                   </tr>
@@ -444,6 +448,9 @@ function StudentTable() {
       {editStudent && (
         <EditStudentDialog student={editStudent} open={!!editStudent} onOpenChange={(v) => { if (!v) setEditStudent(null); }} />
       )}
+      {resetStudent && (
+        <ResetPasswordDialog targetUserId={resetStudent.user_id} label={resetStudent.name ?? resetStudent.email} open={!!resetStudent} onOpenChange={(v) => { if (!v) setResetStudent(null); }} />
+      )}
     </div>
   );
 }
@@ -452,6 +459,7 @@ function TeacherTable() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [editTeacher, setEditTeacher] = useState<any>(null);
+  const [resetTeacher, setResetTeacher] = useState<any>(null);
   useEffect(() => { setPage(1); }, [search]);
 
   const { data: teachers } = useQuery({
@@ -550,9 +558,12 @@ function TeacherTable() {
                         <Badge variant={t.status === "Active" ? "default" : "destructive"} className="text-[11px]">{t.status}</Badge>
                       </td>
                       <td className="py-3 px-4">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditTeacher(t)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditTeacher(t)} title="Edit">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setResetTeacher(t)} title="Reset password">
+                        <KeyRound className="h-3.5 w-3.5" />
+                      </Button>
                       </td>
                     </tr>
                   );
@@ -565,6 +576,9 @@ function TeacherTable() {
       </Card>
       {editTeacher && (
         <EditTeacherDialog teacher={editTeacher} open={!!editTeacher} onOpenChange={(v) => { if (!v) setEditTeacher(null); }} />
+      )}
+      {resetTeacher && (
+        <ResetPasswordDialog targetUserId={resetTeacher.user_id} label={resetTeacher.name ?? resetTeacher.email} open={!!resetTeacher} onOpenChange={(v) => { if (!v) setResetTeacher(null); }} />
       )}
     </div>
   );
@@ -641,7 +655,7 @@ function EditCampusAdminDialog({ campusAdmin, open, onOpenChange }: { campusAdmi
   );
 }
 
-function ResetPasswordDialog({ campusAdmin, open, onOpenChange }: { campusAdmin: any; open: boolean; onOpenChange: (v: boolean) => void }) {
+function ResetPasswordDialog({ targetUserId, label, open, onOpenChange }: { targetUserId: string; label: string; open: boolean; onOpenChange: (v: boolean) => void }) {
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
@@ -651,7 +665,7 @@ function ResetPasswordDialog({ campusAdmin, open, onOpenChange }: { campusAdmin:
     if (pw !== confirm) return toast.error("Passwords do not match");
     setSaving(true);
     const { data, error } = await supabase.functions.invoke("admin-reset-password", {
-      body: { target_user_id: campusAdmin.user_id, new_password: pw },
+      body: { target_user_id: targetUserId, new_password: pw },
     });
     setSaving(false);
     if (error || (data as any)?.error) {
@@ -666,7 +680,7 @@ function ResetPasswordDialog({ campusAdmin, open, onOpenChange }: { campusAdmin:
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Reset Password — {campusAdmin.name ?? campusAdmin.email}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Reset Password — {label}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div><Label>New Password</Label><Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} /></div>
           <div><Label>Confirm Password</Label><Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></div>
@@ -784,7 +798,7 @@ function CampusAdminTable() {
         <EditCampusAdminDialog campusAdmin={editCampusAdmin} open={!!editCampusAdmin} onOpenChange={(v) => { if (!v) setEditCampusAdmin(null); }} />
       )}
       {resetCampusAdmin && (
-        <ResetPasswordDialog campusAdmin={resetCampusAdmin} open={!!resetCampusAdmin} onOpenChange={(v) => { if (!v) setResetCampusAdmin(null); }} />
+        <ResetPasswordDialog targetUserId={resetCampusAdmin.user_id} label={resetCampusAdmin.name ?? resetCampusAdmin.email} open={!!resetCampusAdmin} onOpenChange={(v) => { if (!v) setResetCampusAdmin(null); }} />
       )}
     </div>
   );

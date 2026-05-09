@@ -1,11 +1,11 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { BookOpen, LayoutDashboard, LogOut } from "lucide-react";
+import { BookOpen, LayoutDashboard } from "lucide-react";
 import brandLogo from "@/assets/superior-logo.png";
-import { Button } from "@/components/ui/button";
+import UserMenu from "@/components/UserMenu";
 
 export default function StudentLayout() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   if (loading) {
@@ -33,10 +33,7 @@ export default function StudentLayout() {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">{user.email}</span>
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
-              <LogOut className="h-4 w-4 mr-1" /> Logout
-            </Button>
+            <UserMenu />
           </div>
         </div>
       </header>

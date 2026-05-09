@@ -44,14 +44,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Ensure target user is a campus_admin
-    const { data: targetRole } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", target_user_id).maybeSingle();
-    if (targetRole?.role !== "campus_admin") {
-      return new Response(JSON.stringify({ error: "Target user is not a campus admin" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Admin can reset any user's password — no role restriction on target.
 
     const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(target_user_id, {
       password: new_password,
