@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, GraduationCap, ShieldCheck, Pencil, Building2 } from "lucide-react";
+import { Plus, Search, GraduationCap, ShieldCheck, Pencil, Building2, KeyRound } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -641,8 +641,45 @@ function EditCampusAdminDialog({ campusAdmin, open, onOpenChange }: { campusAdmi
   );
 }
 
+function ResetPasswordDialog({ campusAdmin, open, onOpenChange }: { campusAdmin: any; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [pw, setPw] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (pw.length < 6) return toast.error("Password must be at least 6 characters");
+    if (pw !== confirm) return toast.error("Passwords do not match");
+    setSaving(true);
+    const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+      body: { target_user_id: campusAdmin.user_id, new_password: pw },
+    });
+    setSaving(false);
+    if (error || (data as any)?.error) {
+      toast.error((data as any)?.error || error?.message || "Failed to reset password");
+      return;
+    }
+    toast.success("Password reset successfully");
+    setPw(""); setConfirm("");
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Reset Password — {campusAdmin.name ?? campusAdmin.email}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div><Label>New Password</Label><Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} /></div>
+          <div><Label>Confirm Password</Label><Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></div>
+          <Button className="w-full" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Reset Password"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function CampusAdminTable() {
   const [editCampusAdmin, setEditCampusAdmin] = useState<any>(null);
+  const [resetCampusAdmin, setResetCampusAdmin] = useState<any>(null);
   const [page, setPage] = useState(1);
 
   const { data: campusAdmins, isLoading, error } = useQuery({
@@ -725,8 +762,11 @@ function CampusAdminTable() {
                     <td className="py-3 px-4 text-muted-foreground">{ca.campuses?.city ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{new Date(ca.created_at).toLocaleDateString()}</td>
                     <td className="py-3 px-4">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditCampusAdmin(ca)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditCampusAdmin(ca)} title="Edit">
                         <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setResetCampusAdmin(ca)} title="Reset password">
+                        <KeyRound className="h-3.5 w-3.5" />
                       </Button>
                     </td>
                   </tr>
@@ -742,6 +782,9 @@ function CampusAdminTable() {
       </Card>
       {editCampusAdmin && (
         <EditCampusAdminDialog campusAdmin={editCampusAdmin} open={!!editCampusAdmin} onOpenChange={(v) => { if (!v) setEditCampusAdmin(null); }} />
+      )}
+      {resetCampusAdmin && (
+        <ResetPasswordDialog campusAdmin={resetCampusAdmin} open={!!resetCampusAdmin} onOpenChange={(v) => { if (!v) setResetCampusAdmin(null); }} />
       )}
     </div>
   );
