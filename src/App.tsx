@@ -11,6 +11,8 @@ import TeacherLayout from "@/components/TeacherLayout";
 import CampusAdminLayout from "@/components/CampusAdminLayout";
 import RoleGuard from "@/components/guards/RoleGuard";
 import Login from "@/pages/Login";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import Dashboard from "@/pages/Dashboard";
 import Courses from "@/pages/Courses";
 import CreateCourse from "@/pages/CreateCourse";
@@ -50,6 +52,8 @@ const App = () => (
           <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/teacher/setup" element={<TeacherSetup />} />
             <Route path="/student/register" element={<StudentRegister />} />
 
