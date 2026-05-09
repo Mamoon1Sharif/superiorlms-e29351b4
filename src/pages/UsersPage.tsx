@@ -641,7 +641,7 @@ function EditCampusAdminDialog({ campusAdmin, open, onOpenChange }: { campusAdmi
   );
 }
 
-function ResetPasswordDialog({ campusAdmin, open, onOpenChange }: { campusAdmin: any; open: boolean; onOpenChange: (v: boolean) => void }) {
+function ResetPasswordDialog({ targetUserId, label, open, onOpenChange }: { targetUserId: string; label: string; open: boolean; onOpenChange: (v: boolean) => void }) {
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
@@ -651,7 +651,7 @@ function ResetPasswordDialog({ campusAdmin, open, onOpenChange }: { campusAdmin:
     if (pw !== confirm) return toast.error("Passwords do not match");
     setSaving(true);
     const { data, error } = await supabase.functions.invoke("admin-reset-password", {
-      body: { target_user_id: campusAdmin.user_id, new_password: pw },
+      body: { target_user_id: targetUserId, new_password: pw },
     });
     setSaving(false);
     if (error || (data as any)?.error) {
@@ -666,7 +666,7 @@ function ResetPasswordDialog({ campusAdmin, open, onOpenChange }: { campusAdmin:
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Reset Password — {campusAdmin.name ?? campusAdmin.email}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Reset Password — {label}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div><Label>New Password</Label><Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} /></div>
           <div><Label>Confirm Password</Label><Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></div>
