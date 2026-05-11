@@ -62,7 +62,7 @@ export default function AssignmentSubmission({ assignment, studentId, completed,
       return;
     }
     if (!allowedTypes.includes(selected.type)) {
-      toast.error("Unsupported file type. Please upload PDF, PPT, Word, or video files.");
+      toast.error("Unsupported file type. Please upload PDF, Word, JPEG, or PNG files.");
       return;
     }
     setFile(selected);
