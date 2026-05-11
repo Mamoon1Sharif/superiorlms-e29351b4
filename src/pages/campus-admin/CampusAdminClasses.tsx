@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { StudentProgressDetail, useStudentOverallProgress } from "@/components/StudentProgressDetail";
 
@@ -53,6 +54,7 @@ function StudentRow({ s, isOpen, onToggle }: { s: any; isOpen: boolean; onToggle
 export default function CampusAdminClasses() {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [sectionFilters, setSectionFilters] = useState<Record<string, string>>({});
   const toggle = (id: string) => {
     setExpanded((p) => {
       const n = new Set(p);
@@ -100,6 +102,16 @@ export default function CampusAdminClasses() {
     enabled: !!campusId,
   });
 
+  const { data: allSections } = useQuery({
+    queryKey: ["ca-classes-sections", campusId],
+    queryFn: async () => {
+      if (!classes?.length) return [];
+      const { data } = await supabase.from("sections").select("id, name, class_id").in("class_id", classes.map((c: any) => c.id));
+      return data ?? [];
+    },
+    enabled: !!classes?.length,
+  });
+
   if (!classes || classes.length === 0) {
     return (
       <div className="space-y-6">
@@ -120,9 +132,27 @@ export default function CampusAdminClasses() {
           {classes.map((c) => <TabsTrigger key={c.id} value={c.id} className="text-xs">{c.name}</TabsTrigger>)}
         </TabsList>
         {classes.map((c) => {
-          const cs = (students ?? []).filter((s: any) => s.class_id === c.id);
+          const classSections = (allSections ?? []).filter((sec: any) => sec.class_id === c.id);
+          const sectionFilter = sectionFilters[c.id] ?? "all";
+          const cs = (students ?? []).filter(
+            (s: any) => s.class_id === c.id && (sectionFilter === "all" || s.section_id === sectionFilter),
+          );
           return (
-            <TabsContent key={c.id} value={c.id} className="mt-4">
+            <TabsContent key={c.id} value={c.id} className="mt-4 space-y-3">
+              {classSections.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Filter by section:</span>
+                  <Select value={sectionFilter} onValueChange={(v) => setSectionFilters((p) => ({ ...p, [c.id]: v }))}>
+                    <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All sections</SelectItem>
+                      {classSections.map((sec: any) => (
+                        <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Card>
                 <CardContent className="p-0">
                   <table className="w-full text-sm">

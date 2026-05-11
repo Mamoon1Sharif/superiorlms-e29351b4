@@ -32,13 +32,11 @@ export default function AssignmentSubmission({ assignment, studentId, completed,
   const maxSizeMB = assignment?.max_file_size_mb ?? 10;
   const allowedTypes = [
     "application/pdf",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "video/mp4",
-    "video/webm",
-    "video/quicktime",
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
   ];
 
   const { data: existingSubmission } = useQuery({
@@ -64,7 +62,7 @@ export default function AssignmentSubmission({ assignment, studentId, completed,
       return;
     }
     if (!allowedTypes.includes(selected.type)) {
-      toast.error("Unsupported file type. Please upload PDF, PPT, Word, or video files.");
+      toast.error("Unsupported file type. Please upload PDF, Word, JPEG, or PNG files.");
       return;
     }
     setFile(selected);
@@ -199,11 +197,11 @@ export default function AssignmentSubmission({ assignment, studentId, completed,
 
         {/* File upload */}
         <div className="space-y-2">
-          <p className="text-sm font-medium">Upload Document <span className="text-muted-foreground font-normal">(max {maxSizeMB}MB — PDF, PPT, Word, Video)</span></p>
+          <p className="text-sm font-medium">Upload Document <span className="text-muted-foreground font-normal">(max {maxSizeMB}MB — PDF, Word, JPEG, PNG)</span></p>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.ppt,.pptx,.doc,.docx,.mp4,.webm,.mov"
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
             onChange={handleFileSelect}
             className="hidden"
           />
