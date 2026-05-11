@@ -38,13 +38,32 @@ export default function CampusAdminStudents() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("*, classes(name)")
+        .select("*, classes(name), sections(name, class_id)")
         .eq("campus_id", campusId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
     enabled: !!campusId,
+  });
+
+  const { data: classes } = useQuery({
+    queryKey: ["ca-students-classes", campusId],
+    queryFn: async () => {
+      const { data } = await supabase.from("classes").select("id, name").eq("campus_id", campusId).order("name");
+      return data ?? [];
+    },
+    enabled: !!campusId,
+  });
+
+  const { data: sections } = useQuery({
+    queryKey: ["ca-students-sections", classFilter],
+    queryFn: async () => {
+      if (classFilter === "all") return [];
+      const { data } = await supabase.from("sections").select("id, name").eq("class_id", classFilter).order("name");
+      return data ?? [];
+    },
+    enabled: classFilter !== "all",
   });
 
   const setApproval = async (studentId: string, status: "Approved" | "Rejected") => {
