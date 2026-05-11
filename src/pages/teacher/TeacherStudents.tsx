@@ -94,7 +94,7 @@ export default function TeacherStudents() {
   const { data: students } = useQuery({
     queryKey: ["my-students", assignedClassIds, assignedCampusIds],
     queryFn: async () => {
-      let query = supabase.from("students").select("*, classes(name), campuses(name)");
+      let query = supabase.from("students").select("*, classes(name), campuses(name), sections(name)");
       if (assignedClassIds.length > 0 && assignedCampusIds.length > 0) {
         query = query.or(
           `class_id.in.(${assignedClassIds.join(",")}),and(class_id.is.null,campus_id.in.(${assignedCampusIds.join(",")}))`,
