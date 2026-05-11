@@ -38,7 +38,7 @@ export default function CampusAdminStudents() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("*, classes(name), sections(name, class_id)")
+        .select("*, classes(name)")
         .eq("campus_id", campusId)
         .order("created_at", { ascending: false });
       if (error) throw error;
