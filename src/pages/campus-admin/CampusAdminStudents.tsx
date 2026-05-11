@@ -92,11 +92,16 @@ export default function CampusAdminStudents() {
     queryClient.invalidateQueries({ queryKey: ["ca-students"] });
   };
 
-  const filtered = (students ?? []).filter((s: any) =>
-    s.name?.toLowerCase().includes(search.toLowerCase()) ||
-    s.reg_no?.toLowerCase().includes(search.toLowerCase()) ||
-    s.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = (students ?? []).filter((s: any) => {
+    const q = search.toLowerCase();
+    const matchSearch =
+      s.name?.toLowerCase().includes(q) ||
+      s.reg_no?.toLowerCase().includes(q) ||
+      s.email?.toLowerCase().includes(q);
+    const matchClass = classFilter === "all" || s.class_id === classFilter;
+    const matchSection = sectionFilter === "all" || s.section_id === sectionFilter;
+    return matchSearch && matchClass && matchSection;
+  });
 
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
@@ -107,9 +112,25 @@ export default function CampusAdminStudents() {
         <p className="text-muted-foreground text-sm mt-1">Approve registrations · click a row to view progress</p>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search by name, reg no, email..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative max-w-sm flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search by name, reg no, email..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={classFilter} onValueChange={(v) => { setClassFilter(v); setSectionFilter("all"); }}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="All classes" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All classes</SelectItem>
+            {(classes ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={sectionFilter} onValueChange={setSectionFilter} disabled={classFilter === "all"}>
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="All sections" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All sections</SelectItem>
+            {(sections ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
