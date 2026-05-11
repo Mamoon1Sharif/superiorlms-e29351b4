@@ -18,6 +18,8 @@ export default function CampusAdminStudents() {
   const [search, setSearch] = useState("");
   const [editingRegId, setEditingRegId] = useState<string | null>(null);
   const [regNoDraft, setRegNoDraft] = useState("");
+  const [classFilter, setClassFilter] = useState<string>("all");
+  const [sectionFilter, setSectionFilter] = useState<string>("all");
 
   const { data: ca } = useQuery({
     queryKey: ["my-campus-admin", user?.id],
