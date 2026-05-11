@@ -197,11 +197,11 @@ export default function AssignmentSubmission({ assignment, studentId, completed,
 
         {/* File upload */}
         <div className="space-y-2">
-          <p className="text-sm font-medium">Upload Document <span className="text-muted-foreground font-normal">(max {maxSizeMB}MB — PDF, PPT, Word, Video)</span></p>
+          <p className="text-sm font-medium">Upload Document <span className="text-muted-foreground font-normal">(max {maxSizeMB}MB — PDF, Word, JPEG, PNG)</span></p>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.ppt,.pptx,.doc,.docx,.mp4,.webm,.mov"
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
             onChange={handleFileSelect}
             className="hidden"
           />
