@@ -138,11 +138,36 @@ export default function TeacherStudents() {
           ))}
         </TabsList>
         {tabsByClass.map((a: any) => {
-          const classStudents = students?.filter(
+          const allClassStudents = students?.filter(
             (s) => s.class_id === a.class_id || (s.class_id === null && s.campus_id === a.classes?.campus_id),
           ) ?? [];
+          const classSections = Array.from(
+            new Map(
+              allClassStudents
+                .filter((s: any) => s.section_id)
+                .map((s: any) => [s.section_id, { id: s.section_id, name: (s as any).sections?.name || "—" }]),
+            ).values(),
+          );
+          const sectionFilter = sectionFilters[a.class_id] ?? "all";
+          const classStudents = allClassStudents.filter(
+            (s: any) => sectionFilter === "all" || s.section_id === sectionFilter,
+          );
           return (
-            <TabsContent key={a.class_id} value={a.class_id} className="mt-4">
+            <TabsContent key={a.class_id} value={a.class_id} className="mt-4 space-y-3">
+              {classSections.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Filter by section:</span>
+                  <Select value={sectionFilter} onValueChange={(v) => setSectionFilters((p) => ({ ...p, [a.class_id]: v }))}>
+                    <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All sections</SelectItem>
+                      {classSections.map((sec: any) => (
+                        <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Card>
                 <CardContent className="p-0">
                   <table className="w-full text-sm">
