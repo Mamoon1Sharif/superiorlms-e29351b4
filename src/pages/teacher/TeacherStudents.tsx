@@ -100,13 +100,13 @@ export default function TeacherStudents() {
         assignedClassIds.length
           ? supabase
               .from("students")
-              .select("*, classes(name), campuses(name), sections(name)")
+              .select("*, classes(name), campuses(name)")
               .in("class_id", assignedClassIds)
           : Promise.resolve({ data: [], error: null } as any),
         assignedCampusIds.length
           ? supabase
               .from("students")
-              .select("*, classes(name), campuses(name), sections(name)")
+              .select("*, classes(name), campuses(name)")
               .is("class_id", null)
               .in("campus_id", assignedCampusIds)
           : Promise.resolve({ data: [], error: null } as any),
@@ -115,7 +115,14 @@ export default function TeacherStudents() {
       if (byCampusNull.error) throw byCampusNull.error;
       const map = new Map<string, any>();
       [...(byClass.data ?? []), ...(byCampusNull.data ?? [])].forEach((s: any) => map.set(s.id, s));
-      return Array.from(map.values());
+      const list = Array.from(map.values());
+      const sectionIds = Array.from(new Set(list.map((s: any) => s.section_id).filter(Boolean)));
+      if (sectionIds.length) {
+        const { data: secs } = await supabase.from("sections").select("id, name").in("id", sectionIds);
+        const byId = new Map((secs ?? []).map((s: any) => [s.id, s]));
+        list.forEach((s: any) => { s.sections = s.section_id ? byId.get(s.section_id) ?? null : null; });
+      }
+      return list;
     },
     enabled: assignedClassIds.length > 0,
   });
