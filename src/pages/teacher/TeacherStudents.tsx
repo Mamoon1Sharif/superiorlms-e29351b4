@@ -160,9 +160,16 @@ export default function TeacherStudents() {
             ).values(),
           );
           const sectionFilter = sectionFilters[a.class_id] ?? "all";
-          const classStudents = allClassStudents.filter(
-            (s: any) => sectionFilter === "all" || s.section_id === sectionFilter,
-          );
+          const search = (searchFilters[a.class_id] ?? "").trim().toLowerCase();
+          const classStudents = allClassStudents.filter((s: any) => {
+            const matchSection = sectionFilter === "all" || s.section_id === sectionFilter;
+            const matchSearch =
+              !search ||
+              s.name?.toLowerCase().includes(search) ||
+              s.email?.toLowerCase().includes(search) ||
+              s.reg_no?.toLowerCase().includes(search);
+            return matchSection && matchSearch;
+          });
           return (
             <TabsContent key={a.class_id} value={a.class_id} className="mt-4 space-y-3">
               {classSections.length > 0 && (
