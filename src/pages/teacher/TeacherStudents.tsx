@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { StudentProgressDetail, useStudentOverallProgress } from "@/components/StudentProgressDetail";
 
 function StudentRow({ s, onToggle, isOpen }: { s: any; onToggle: () => void; isOpen: boolean }) {
