@@ -96,17 +96,26 @@ export default function TeacherStudents() {
   const { data: students } = useQuery({
     queryKey: ["my-students", assignedClassIds, assignedCampusIds],
     queryFn: async () => {
-      let query = supabase.from("students").select("*, classes(name), campuses(name), sections(name)");
-      if (assignedClassIds.length > 0 && assignedCampusIds.length > 0) {
-        query = query.or(
-          `class_id.in.(${assignedClassIds.join(",")}),and(class_id.is.null,campus_id.in.(${assignedCampusIds.join(",")}))`,
-        );
-      } else if (assignedClassIds.length > 0) {
-        query = query.in("class_id", assignedClassIds);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      const [byClass, byCampusNull] = await Promise.all([
+        assignedClassIds.length
+          ? supabase
+              .from("students")
+              .select("*, classes(name), campuses(name), sections(name)")
+              .in("class_id", assignedClassIds)
+          : Promise.resolve({ data: [], error: null } as any),
+        assignedCampusIds.length
+          ? supabase
+              .from("students")
+              .select("*, classes(name), campuses(name), sections(name)")
+              .is("class_id", null)
+              .in("campus_id", assignedCampusIds)
+          : Promise.resolve({ data: [], error: null } as any),
+      ]);
+      if (byClass.error) throw byClass.error;
+      if (byCampusNull.error) throw byCampusNull.error;
+      const map = new Map<string, any>();
+      [...(byClass.data ?? []), ...(byCampusNull.data ?? [])].forEach((s: any) => map.set(s.id, s));
+      return Array.from(map.values());
     },
     enabled: assignedClassIds.length > 0,
   });
