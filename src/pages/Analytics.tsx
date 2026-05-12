@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function Analytics() {
@@ -155,9 +156,11 @@ export default function Analytics() {
   const regionName = (rid: string | null) =>
     regionList.find((r: any) => r.id === rid)?.name ?? "";
 
+  // Only count enrollments tied to a student with a campus, to match Enrollment Overview table
+  const enrollmentsWithCampus = (enrollments ?? []).filter((e: any) => !!studentCampusById.get(e.student_id));
   const statusCounts = ["Approved", "Pending", "Rejected"].map((s) => ({
     status: s,
-    count: (enrollments ?? []).filter((e) => e.status === s).length,
+    count: enrollmentsWithCampus.filter((e: any) => e.status === s).length,
   }));
 
   return (
@@ -314,6 +317,13 @@ function EnrollmentStats() {
     { received: 0, approved: 0, rejected: 0, pending: 0 }
   );
 
+  const [campusSearch, setCampusSearch] = useState("");
+  const filteredRows = (rows ?? []).filter((r: any) => {
+    const q = campusSearch.trim().toLowerCase();
+    if (!q) return true;
+    return r.name?.toLowerCase().includes(q) || r.city?.toLowerCase().includes(q);
+  });
+
   return (
     <div className="space-y-4">
       <div>
@@ -326,6 +336,16 @@ function EnrollmentStats() {
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Pending</p><p className="text-2xl font-bold mt-1">{totals.pending}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Approved</p><p className="text-2xl font-bold mt-1 text-primary">{totals.approved}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Rejected</p><p className="text-2xl font-bold mt-1 text-destructive">{totals.rejected}</p></CardContent></Card>
+      </div>
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search campus or city..."
+          value={campusSearch}
+          onChange={(e) => setCampusSearch(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       <Card>
@@ -345,10 +365,10 @@ function EnrollmentStats() {
               <tbody>
                 {isLoading ? (
                   <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">Loading...</td></tr>
-                ) : (rows ?? []).length === 0 ? (
+                ) : filteredRows.length === 0 ? (
                   <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">No campuses found</td></tr>
                 ) : (
-                  (rows ?? []).map((r: any) => (
+                  filteredRows.map((r: any) => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="py-3 px-4 font-medium">{r.name}</td>
                       <td className="py-3 px-4 text-muted-foreground">{r.city}</td>
