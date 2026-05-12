@@ -55,6 +55,7 @@ export default function TeacherStudents() {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [sectionFilters, setSectionFilters] = useState<Record<string, string>>({});
+  const [searchFilters, setSearchFilters] = useState<Record<string, string>>({});
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
