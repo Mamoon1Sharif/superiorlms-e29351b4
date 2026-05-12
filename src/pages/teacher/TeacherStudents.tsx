@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { StudentProgressDetail, useStudentOverallProgress } from "@/components/StudentProgressDetail";
 
 function StudentRow({ s, onToggle, isOpen }: { s: any; onToggle: () => void; isOpen: boolean }) {
@@ -54,6 +55,7 @@ export default function TeacherStudents() {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [sectionFilters, setSectionFilters] = useState<Record<string, string>>({});
+  const [searchFilters, setSearchFilters] = useState<Record<string, string>>({});
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
@@ -94,17 +96,26 @@ export default function TeacherStudents() {
   const { data: students } = useQuery({
     queryKey: ["my-students", assignedClassIds, assignedCampusIds],
     queryFn: async () => {
-      let query = supabase.from("students").select("*, classes(name), campuses(name), sections(name)");
-      if (assignedClassIds.length > 0 && assignedCampusIds.length > 0) {
-        query = query.or(
-          `class_id.in.(${assignedClassIds.join(",")}),and(class_id.is.null,campus_id.in.(${assignedCampusIds.join(",")}))`,
-        );
-      } else if (assignedClassIds.length > 0) {
-        query = query.in("class_id", assignedClassIds);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      const [byClass, byCampusNull] = await Promise.all([
+        assignedClassIds.length
+          ? supabase
+              .from("students")
+              .select("*, classes(name), campuses(name), sections(name)")
+              .in("class_id", assignedClassIds)
+          : Promise.resolve({ data: [], error: null } as any),
+        assignedCampusIds.length
+          ? supabase
+              .from("students")
+              .select("*, classes(name), campuses(name), sections(name)")
+              .is("class_id", null)
+              .in("campus_id", assignedCampusIds)
+          : Promise.resolve({ data: [], error: null } as any),
+      ]);
+      if (byClass.error) throw byClass.error;
+      if (byCampusNull.error) throw byCampusNull.error;
+      const map = new Map<string, any>();
+      [...(byClass.data ?? []), ...(byCampusNull.data ?? [])].forEach((s: any) => map.set(s.id, s));
+      return Array.from(map.values());
     },
     enabled: assignedClassIds.length > 0,
   });
@@ -149,25 +160,43 @@ export default function TeacherStudents() {
             ).values(),
           );
           const sectionFilter = sectionFilters[a.class_id] ?? "all";
-          const classStudents = allClassStudents.filter(
-            (s: any) => sectionFilter === "all" || s.section_id === sectionFilter,
-          );
+          const search = (searchFilters[a.class_id] ?? "").trim().toLowerCase();
+          const classStudents = allClassStudents.filter((s: any) => {
+            const matchSection = sectionFilter === "all" || s.section_id === sectionFilter;
+            const matchSearch =
+              !search ||
+              s.name?.toLowerCase().includes(search) ||
+              s.email?.toLowerCase().includes(search) ||
+              s.reg_no?.toLowerCase().includes(search);
+            return matchSection && matchSearch;
+          });
           return (
             <TabsContent key={a.class_id} value={a.class_id} className="mt-4 space-y-3">
-              {classSections.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Filter by section:</span>
-                  <Select value={sectionFilter} onValueChange={(v) => setSectionFilters((p) => ({ ...p, [a.class_id]: v }))}>
-                    <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All sections</SelectItem>
-                      {classSections.map((sec: any) => (
-                        <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={searchFilters[a.class_id] ?? ""}
+                    onChange={(e) => setSearchFilters((p) => ({ ...p, [a.class_id]: e.target.value }))}
+                    placeholder="Search name, email, reg no"
+                    className="h-8 text-xs pl-7 w-[240px]"
+                  />
                 </div>
-              )}
+                {classSections.length > 0 && (
+                  <>
+                    <span className="text-xs text-muted-foreground ml-2">Section:</span>
+                    <Select value={sectionFilter} onValueChange={(v) => setSectionFilters((p) => ({ ...p, [a.class_id]: v }))}>
+                      <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All sections</SelectItem>
+                        {classSections.map((sec: any) => (
+                          <SelectItem key={sec.id} value={sec.id}>{sec.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+              </div>
               <Card>
                 <CardContent className="p-0">
                   <table className="w-full text-sm">
