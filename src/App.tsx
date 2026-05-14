@@ -27,6 +27,8 @@ import StudentRegister from "@/pages/student/StudentRegister";
 import StudentDashboard from "@/pages/student/StudentDashboard";
 import StudentCatalog from "@/pages/student/StudentCatalog";
 import StudentCourseView from "@/pages/student/StudentCourseView";
+import StudentCapstone from "@/pages/student/StudentCapstone";
+import CapstoneSettings from "@/pages/CapstoneSettings";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import TeacherStudents from "@/pages/teacher/TeacherStudents";
 import TeacherGrading from "@/pages/teacher/TeacherGrading";
