@@ -30,6 +30,9 @@ export default function StudentLayout() {
               <Link to="/student/catalog" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
                 <BookOpen className="h-3.5 w-3.5" /> Courses
               </Link>
+              <Link to="/student/capstone" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+                <GraduationCap className="h-3.5 w-3.5" /> Capstone
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-3">
