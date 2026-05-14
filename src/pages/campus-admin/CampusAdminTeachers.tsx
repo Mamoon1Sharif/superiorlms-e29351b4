@@ -367,6 +367,9 @@ export default function CampusAdminTeachers() {
                           ))}
                       </div>
                     </TableCell>
+                    <TableCell className="text-right">
+                      {campusId && <EditTeacherDialog teacher={t} campusId={campusId} />}
+                    </TableCell>
                   </TableRow>
                 );
               })}
