@@ -197,6 +197,87 @@ export type Database = {
           },
         ]
       }
+      capstone_settings: {
+        Row: {
+          cover_url: string | null
+          deadline: string | null
+          id: boolean
+          instructions: string
+          is_published: boolean
+          max_file_size_mb: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_url?: string | null
+          deadline?: string | null
+          id?: boolean
+          instructions?: string
+          is_published?: boolean
+          max_file_size_mb?: number
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          cover_url?: string | null
+          deadline?: string | null
+          id?: boolean
+          instructions?: string
+          is_published?: boolean
+          max_file_size_mb?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      capstone_submissions: {
+        Row: {
+          created_at: string
+          description: string
+          files: Json
+          grade: number | null
+          graded: boolean
+          graded_at: string | null
+          graded_by: string | null
+          grading_comments: string | null
+          id: string
+          profile_links: Json
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          files?: Json
+          grade?: number | null
+          graded?: boolean
+          graded_at?: string | null
+          graded_by?: string | null
+          grading_comments?: string | null
+          id?: string
+          profile_links?: Json
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          files?: Json
+          grade?: number | null
+          graded?: boolean
+          graded_at?: string | null
+          graded_by?: string | null
+          grading_comments?: string | null
+          id?: string
+          profile_links?: Json
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       classes: {
         Row: {
           campus_id: string
