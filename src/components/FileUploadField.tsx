@@ -36,7 +36,7 @@ export default function FileUploadField({
       if (error) throw error;
       const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
       onChange(data.publicUrl);
-      toast.success(`${kind === "image" ? "Thumbnail" : "PDF"} uploaded`);
+      toast.success(`${kind === "image" ? "Thumbnail" : kind === "pdf" ? "PDF" : "File"} uploaded`);
     } catch (err: any) {
       toast.error(err.message || "Upload failed");
     } finally {
