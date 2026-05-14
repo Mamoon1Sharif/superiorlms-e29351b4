@@ -65,6 +65,26 @@ export default function StudentDashboard() {
     enabled: !!student && !!campusCourses?.length,
   });
 
+  const { data: capstoneSettings } = useQuery({
+    queryKey: ["capstone-settings-public"],
+    queryFn: async () => {
+      const { data } = await supabase.from("capstone_settings").select("*").eq("id", true).maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: capstoneSubmission } = useQuery({
+    queryKey: ["my-capstone", student?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("capstone_submissions").select("status, graded, grade").eq("student_id", student!.id).maybeSingle();
+      return data;
+    },
+    enabled: !!student,
+  });
+
+  const allCoursesDone = !!campusCourses?.length && campusCourses.every((c: any) => completions?.[c.id]?.isComplete);
+  const showCapstone = capstoneSettings?.is_published && allCoursesDone;
+
   const applyToProgram = async () => {
     if (!student) return;
     const { error } = await supabase.from("program_enrollments").insert({
