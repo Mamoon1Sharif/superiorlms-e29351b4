@@ -323,6 +323,89 @@ export default function TeacherGrading() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Capstone review dialog */}
+      <Dialog open={!!capstoneReview} onOpenChange={(v) => { if (!v) setCapstoneReview(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Review Capstone Submission</DialogTitle>
+          </DialogHeader>
+          {capstoneReview && (
+            <div className="space-y-4">
+              <p className="text-sm font-medium">{getStudentName(capstoneReview.student_id)}</p>
+
+              {(capstoneReview.profile_links?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">Profile / Portfolio Links</p>
+                  <div className="space-y-1">
+                    {capstoneReview.profile_links.map((url: string, i: number) => (
+                      <a key={i} href={url} target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 underline">
+                        <LinkIcon className="h-3 w-3" /> {url}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(capstoneReview.files?.filter((f: any) => f.kind === "submission")?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">Project Files</p>
+                  <div className="space-y-1">
+                    {capstoneReview.files.filter((f: any) => f.kind === "submission").map((f: any, i: number) => (
+                      <a key={i} href={f.url} target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 underline">
+                        <FileText className="h-3 w-3" /> {f.name}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(capstoneReview.files?.filter((f: any) => f.kind === "earnings")?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">Proof of Earnings</p>
+                  <div className="space-y-1">
+                    {capstoneReview.files.filter((f: any) => f.kind === "earnings").map((f: any, i: number) => (
+                      <a key={i} href={f.url} target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 underline">
+                        <FileText className="h-3 w-3" /> {f.name}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {capstoneReview.description && (
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">Description</p>
+                  <p className="text-sm whitespace-pre-wrap p-3 rounded-md bg-muted/40">{capstoneReview.description}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Decision</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Button type="button" size="sm" variant={capStatus === "Approved" ? "default" : "outline"} onClick={() => setCapStatus("Approved")}>Approve</Button>
+                    <Button type="button" size="sm" variant={capStatus === "Rejected" ? "destructive" : "outline"} onClick={() => setCapStatus("Rejected")}>Reject</Button>
+                  </div>
+                </div>
+                <div>
+                  <Label>Grade (out of 100, optional)</Label>
+                  <Input type="number" min={0} max={100} value={capGrade} onChange={(e) => setCapGrade(e.target.value)} />
+                </div>
+              </div>
+
+              <div>
+                <Label>Comments</Label>
+                <Textarea value={capComments} onChange={(e) => setCapComments(e.target.value)} rows={3} placeholder="Feedback for the student..." />
+              </div>
+
+              <Button className="w-full" onClick={() => reviewCapstone.mutate()} disabled={reviewCapstone.isPending}>
+                {reviewCapstone.isPending ? "Saving..." : "Submit Review"}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
