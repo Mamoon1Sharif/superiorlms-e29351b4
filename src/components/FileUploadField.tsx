@@ -98,7 +98,7 @@ export default function FileUploadField({
           ) : kind === "image" ? (
             <><ImageIcon className="h-3.5 w-3.5 mr-1.5" /> Upload Thumbnail</>
           ) : (
-            <><Upload className="h-3.5 w-3.5 mr-1.5" /> Upload PDF</>
+            <><Upload className="h-3.5 w-3.5 mr-1.5" /> {buttonLabel ?? (kind === "pdf" ? "Upload PDF" : "Upload File")}</>
           )}
         </Button>
       )}
