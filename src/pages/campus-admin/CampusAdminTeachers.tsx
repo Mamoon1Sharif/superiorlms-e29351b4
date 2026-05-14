@@ -142,6 +142,152 @@ function AddTeacherForCampus({ campusId }: { campusId: string }) {
   );
 }
 
+function EditTeacherDialog({ teacher, campusId }: { teacher: any; campusId: string }) {
+  const [open, setOpen] = useState(false);
+  const [classId, setClassId] = useState("");
+  const [sectionId, setSectionId] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [savingPw, setSavingPw] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: classes } = useQuery({
+    queryKey: ["edit-tch-classes", campusId],
+    queryFn: async () => {
+      const { data } = await supabase.from("classes").select("*").eq("campus_id", campusId).order("name");
+      return data ?? [];
+    },
+    enabled: open && !!campusId,
+  });
+
+  const { data: sectionsList } = useQuery({
+    queryKey: ["edit-tch-sections", classId],
+    queryFn: async () => {
+      const { data } = await supabase.from("sections").select("*").eq("class_id", classId).order("name");
+      return data ?? [];
+    },
+    enabled: !!classId,
+  });
+
+  const { data: assignments, refetch } = useQuery({
+    queryKey: ["edit-tch-assignments", teacher.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("teacher_class_assignments")
+        .select("*, classes(name), sections(name)")
+        .eq("teacher_id", teacher.id);
+      return data ?? [];
+    },
+    enabled: open,
+  });
+
+  const addAssignment = async () => {
+    if (!classId) return;
+    const dup = (assignments ?? []).some((a: any) => a.class_id === classId && (a.section_id ?? null) === (sectionId || null));
+    if (dup) return toast.error("Already assigned");
+    const { error } = await supabase.from("teacher_class_assignments").insert({
+      teacher_id: teacher.id, class_id: classId, section_id: sectionId || null,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Assignment added");
+    setClassId(""); setSectionId("");
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ["ca-teacher-assignments"] });
+  };
+
+  const removeAssignment = async (id: string) => {
+    const { error } = await supabase.from("teacher_class_assignments").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Removed");
+    refetch();
+    queryClient.invalidateQueries({ queryKey: ["ca-teacher-assignments"] });
+  };
+
+  const resetPassword = async () => {
+    if (newPassword.length < 6) return toast.error("Password must be at least 6 characters");
+    if (!teacher.user_id) return toast.error("Teacher has no linked auth user");
+    setSavingPw(true);
+    const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+      body: { target_user_id: teacher.user_id, new_password: newPassword },
+    });
+    setSavingPw(false);
+    if (error || data?.error) return toast.error(error?.message || data?.error || "Failed");
+    toast.success("Password updated");
+    setNewPassword("");
+  };
+
+  const deleteTeacher = async () => {
+    if (!confirm(`Delete teacher ${teacher.name}? This removes their class assignments and teacher record (auth user remains).`)) return;
+    await supabase.from("teacher_class_assignments").delete().eq("teacher_id", teacher.id);
+    const { error } = await supabase.from("teachers").delete().eq("id", teacher.id);
+    if (error) return toast.error(error.message);
+    toast.success("Teacher deleted");
+    queryClient.invalidateQueries({ queryKey: ["ca-teachers"] });
+    queryClient.invalidateQueries({ queryKey: ["ca-teacher-assignments"] });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm"><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Edit Teacher — {teacher.name}</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="border rounded-lg p-3 space-y-3">
+            <p className="text-sm font-medium">Class & Section Assignments</p>
+            <div className="flex flex-wrap gap-1.5 min-h-[28px]">
+              {(assignments ?? []).length === 0 ? (
+                <span className="text-xs text-muted-foreground">No assignments yet</span>
+              ) : (assignments ?? []).map((a: any) => (
+                <Badge key={a.id} variant="secondary" className="text-xs gap-1">
+                  {a.classes?.name}{a.sections?.name ? ` · ${a.sections.name}` : " · All sections"}
+                  <button onClick={() => removeAssignment(a.id)} className="ml-1 hover:text-destructive">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Class</Label>
+                <Select value={classId} onValueChange={(v) => { setClassId(v); setSectionId(""); }}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Class" /></SelectTrigger>
+                  <SelectContent>{classes?.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Section (optional)</Label>
+                <Select value={sectionId} onValueChange={setSectionId} disabled={!classId || !sectionsList?.length}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder={sectionsList?.length ? "All sections" : "No sections"} /></SelectTrigger>
+                  <SelectContent>{sectionsList?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={addAssignment} disabled={!classId}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Add Assignment
+            </Button>
+          </div>
+
+          <div className="border rounded-lg p-3 space-y-2">
+            <p className="text-sm font-medium flex items-center gap-1.5"><KeyRound className="h-4 w-4" /> Change Password</p>
+            <div className="flex gap-2">
+              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password (min 6 chars)" />
+              <Button onClick={resetPassword} disabled={savingPw || newPassword.length < 6}>
+                {savingPw ? "Saving..." : "Update"}
+              </Button>
+            </div>
+          </div>
+
+          <Button variant="destructive" className="w-full" onClick={deleteTeacher}>
+            <Trash2 className="h-4 w-4 mr-2" /> Delete Teacher
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function CampusAdminTeachers() {
   const { user } = useAuth();
 
