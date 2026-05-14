@@ -244,9 +244,10 @@ function ModuleEditor({ mod, modIdx, updateModule, removeModule }: {
               value={mod.assignment.pdf_url}
               onChange={(url) => updateModule(modIdx, { assignment: { ...mod.assignment!, pdf_url: url } })}
               bucket="assignment-pdfs"
-              accept="application/pdf"
-              kind="pdf"
-              label="Assignment PDF (optional)"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              kind="document"
+              label="Assignment File (PDF or Word, optional)"
+              buttonLabel="Upload PDF or Word"
               maxSizeMB={20}
             />
             <div className="grid grid-cols-2 gap-3">
