@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, FileText, ExternalLink } from "lucide-react";
+import { CheckCircle2, FileText, ExternalLink, GraduationCap, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export default function TeacherGrading() {
