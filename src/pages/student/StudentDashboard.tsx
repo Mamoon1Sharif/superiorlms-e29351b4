@@ -238,6 +238,34 @@ export default function StudentDashboard() {
           )}
         </div>
       )}
+
+      {fullyApproved && showCapstone && (
+        <Card className="overflow-hidden border-primary/30">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center p-5">
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <GraduationCap className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CardTitle className="text-lg">{capstoneSettings?.title || "Final Capstone Project"}</CardTitle>
+                  {capstoneSubmission && (
+                    <Badge variant={capstoneSubmission.status === "Approved" ? "default" : capstoneSubmission.status === "Rejected" ? "destructive" : "secondary"}>
+                      {capstoneSubmission.status}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You've completed all your courses. Submit your final capstone project to wrap up the program.
+                </p>
+              </div>
+            </div>
+            <Link to="/student/capstone">
+              <Button>{capstoneSubmission ? "View Submission" : "Start Capstone"}</Button>
+            </Link>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
