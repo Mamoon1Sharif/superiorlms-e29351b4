@@ -9,9 +9,10 @@ interface FileUploadFieldProps {
   onChange: (url: string | null) => void;
   bucket: string;
   accept: string;
-  kind: "image" | "pdf";
+  kind: "image" | "pdf" | "document";
   label?: string;
   maxSizeMB?: number;
+  buttonLabel?: string;
 }
 
 export default function FileUploadField({
