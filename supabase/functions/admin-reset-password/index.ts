@@ -31,7 +31,8 @@ Deno.serve(async (req) => {
 
     const { data: roleRow } = await supabaseAdmin
       .from("user_roles").select("role").eq("user_id", userData.user.id).maybeSingle();
-    if (roleRow?.role !== "admin") {
+    const callerRole = roleRow?.role;
+    if (callerRole !== "admin" && callerRole !== "campus_admin") {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -44,7 +45,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Admin can reset any user's password — no role restriction on target.
+    // Campus admins may only reset passwords of teachers in their own campus.
+    if (callerRole === "campus_admin") {
+      const { data: ca } = await supabaseAdmin
+        .from("campus_admins").select("campus_id").eq("user_id", userData.user.id).maybeSingle();
+      if (!ca?.campus_id) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: t } = await supabaseAdmin
+        .from("teachers").select("campus_id").eq("user_id", target_user_id).maybeSingle();
+      if (!t || t.campus_id !== ca.campus_id) {
+        return new Response(JSON.stringify({ error: "Forbidden: teacher not in your campus" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(target_user_id, {
       password: new_password,
