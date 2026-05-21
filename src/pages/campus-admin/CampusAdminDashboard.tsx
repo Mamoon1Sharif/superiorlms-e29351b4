@@ -95,7 +95,8 @@ export default function CampusAdminDashboard() {
       const { count } = await supabase
         .from("students")
         .select("id", { count: "exact", head: true })
-        .eq("campus_id", campusId);
+        .eq("campus_id", campusId)
+        .neq("status", "Disabled");
       return count ?? 0;
     },
     enabled: !!campusId,
@@ -108,7 +109,8 @@ export default function CampusAdminDashboard() {
         .from("students")
         .select("id", { count: "exact", head: true })
         .eq("campus_id", campusId)
-        .eq("approval_status", "Pending");
+        .eq("approval_status", "Pending")
+        .neq("status", "Disabled");
       return count ?? 0;
     },
     enabled: !!campusId,
@@ -121,7 +123,8 @@ export default function CampusAdminDashboard() {
         .from("students")
         .select("id", { count: "exact", head: true })
         .eq("campus_id", campusId)
-        .eq("approval_status", "Approved");
+        .eq("approval_status", "Approved")
+        .neq("status", "Disabled");
       return count ?? 0;
     },
     enabled: !!campusId,
@@ -169,6 +172,7 @@ export default function CampusAdminDashboard() {
         .select("id, name, email, reg_no")
         .eq("campus_id", campusId)
         .eq("approval_status", "Approved")
+        .neq("status", "Disabled")
         .limit(50);
       return data ?? [];
     },
