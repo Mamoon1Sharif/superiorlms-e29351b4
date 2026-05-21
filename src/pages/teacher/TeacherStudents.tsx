@@ -159,13 +159,12 @@ export default function TeacherStudents() {
           ))}
         </TabsList>
         {tabsByClass.map((a: any) => {
-          const allClassStudents = students?.filter(
-            (s) => s.class_id === a.class_id || (s.class_id === null && s.campus_id === a.classes?.campus_id),
-          ) ?? [];
+          const allClassStudents = students?.filter((s) => s.class_id === a.class_id) ?? [];
+          const allowed = allowedSectionsByClass[a.class_id];
           const classSections = Array.from(
             new Map(
               allClassStudents
-                .filter((s: any) => s.section_id)
+                .filter((s: any) => s.section_id && (allowed === null || allowed?.has(s.section_id)))
                 .map((s: any) => [s.section_id, { id: s.section_id, name: (s as any).sections?.name || "—" }]),
             ).values(),
           );
