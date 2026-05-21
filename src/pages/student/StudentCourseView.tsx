@@ -300,6 +300,17 @@ export default function StudentCourseView() {
 
         <div>
           {currentItem ? (
+            !isItemUnlocked(activeIndex) ? (
+              <Card>
+                <CardContent className="p-8 text-center space-y-3">
+                  <Lock className="h-10 w-10 text-muted-foreground mx-auto" />
+                  <h2 className="text-base font-semibold">This item is locked</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Complete all previous items (including the module assignment) to unlock this content.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
             <>
               {currentItem.type === "video" && (
                 <VideoPlayer lesson={currentItem.data} completed={isItemCompleted(currentItem)}
@@ -331,6 +342,7 @@ export default function StudentCourseView() {
                 )}
               </div>
             </>
+            )
           ) : (
             <Card><CardContent className="p-8 text-center text-muted-foreground">This course has no content yet.</CardContent></Card>
           )}
