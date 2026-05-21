@@ -442,6 +442,26 @@ export default function TeacherGrading() {
           )}
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!rejectingSubmission} onOpenChange={(v) => { if (!v) setRejectingSubmission(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject this submission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove {rejectingSubmission ? getStudentName(rejectingSubmission.student_id) : "the student"}'s submission and unlock the assignment so they can resubmit. Any existing grade will be cleared. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => rejectSubmission.mutate(rejectingSubmission)}
+              disabled={rejectSubmission.isPending}
+            >
+              {rejectSubmission.isPending ? "Rejecting..." : "Reject & Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
