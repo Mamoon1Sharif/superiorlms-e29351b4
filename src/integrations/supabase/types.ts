@@ -546,7 +546,15 @@ export type Database = {
           status?: string
           student_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "program_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       programs: {
         Row: {
