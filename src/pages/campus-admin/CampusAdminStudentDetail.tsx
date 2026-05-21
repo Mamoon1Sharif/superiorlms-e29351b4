@@ -1,11 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, BookOpen, ClipboardList, FileText } from "lucide-react";
+import { ArrowLeft, BookOpen, ClipboardList, FileText, Ban, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 
 export default function CampusAdminStudentDetail() {
   const { id: studentId } = useParams();
