@@ -112,7 +112,7 @@ export default function Dashboard() {
   const { data: teachersCount } = useCount("teachers");
   const { data: modulesCount } = useCount("modules");
   const { data: lessonsCount } = useCount("lessons");
-  const { data: enrollmentsCount } = useCount("enrollments");
+  const { data: enrollmentsCount } = useCount("program_enrollments");
 
   const totalStudents = studentsCount ?? students?.length ?? 0;
   const publishedCourses = courses?.filter((c) => c.status === "Published").length ?? 0;
