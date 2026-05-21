@@ -9,14 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, FileText, ExternalLink, GraduationCap, Link as LinkIcon } from "lucide-react";
+import { CheckCircle2, FileText, ExternalLink, GraduationCap, Link as LinkIcon, XCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function TeacherGrading() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [gradingSubmission, setGradingSubmission] = useState<any>(null);
+  const [rejectingSubmission, setRejectingSubmission] = useState<any>(null);
   const [grade, setGrade] = useState("");
   const [comments, setComments] = useState("");
 
@@ -140,6 +142,31 @@ export default function TeacherGrading() {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const rejectSubmission = useMutation({
+    mutationFn: async (sub: any) => {
+      // Remove the assignment submission so the student can resubmit
+      const { error: delErr } = await supabase
+        .from("assignment_submissions")
+        .delete()
+        .eq("id", sub.id);
+      if (delErr) throw delErr;
+      // Also clear the corresponding completion mark so the student is unblocked to resubmit
+      const { error: progErr } = await supabase
+        .from("student_progress")
+        .delete()
+        .eq("student_id", sub.student_id)
+        .eq("item_id", sub.assignment_id)
+        .eq("item_type", "assignment");
+      if (progErr) throw progErr;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["class-submissions"] });
+      toast.success("Submission rejected — student can resubmit");
+      setRejectingSubmission(null);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const getStudentName = (studentId: string) =>
     myStudents?.find((s) => s.id === studentId)?.name ?? "Unknown";
 
@@ -197,6 +224,9 @@ export default function TeacherGrading() {
                           </a>
                         </Button>
                       )}
+                      <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setRejectingSubmission(s)}>
+                        <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                      </Button>
                       <Button size="sm" onClick={() => { setGradingSubmission(s); setGrade(""); setComments(""); }}>
                         <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Grade
                       </Button>
@@ -220,11 +250,12 @@ export default function TeacherGrading() {
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assignment</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Grade</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Comments</th>
+                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {graded.length === 0 ? (
-                  <tr><td colSpan={4} className="py-6 text-center text-muted-foreground text-sm">No graded submissions</td></tr>
+                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground text-sm">No graded submissions</td></tr>
                 ) : graded.map((s) => {
                   const assignment = getAssignment(s.assignment_id);
                   return (
@@ -235,6 +266,11 @@ export default function TeacherGrading() {
                         <Badge variant="default" className="text-[11px]">{s.grade}/{(assignment as any)?.max_marks ?? 100}</Badge>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground text-xs max-w-[200px] truncate">{(s as any).grading_comments || "—"}</td>
+                      <td className="py-3 px-4 text-right">
+                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setRejectingSubmission(s)}>
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Remove
+                        </Button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -406,6 +442,26 @@ export default function TeacherGrading() {
           )}
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!rejectingSubmission} onOpenChange={(v) => { if (!v) setRejectingSubmission(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject this submission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove {rejectingSubmission ? getStudentName(rejectingSubmission.student_id) : "the student"}'s submission and unlock the assignment so they can resubmit. Any existing grade will be cleared. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => rejectSubmission.mutate(rejectingSubmission)}
+              disabled={rejectSubmission.isPending}
+            >
+              {rejectSubmission.isPending ? "Rejecting..." : "Reject & Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
