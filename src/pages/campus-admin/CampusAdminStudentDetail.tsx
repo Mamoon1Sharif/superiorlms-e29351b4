@@ -1,14 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, BookOpen, ClipboardList, FileText } from "lucide-react";
+import { ArrowLeft, BookOpen, ClipboardList, FileText, Ban, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 
 export default function CampusAdminStudentDetail() {
   const { id: studentId } = useParams();
+  const queryClient = useQueryClient();
+
+  const toggleDisabled = async (disabled: boolean) => {
+    const { error } = await supabase.from("students").update({ status: disabled ? "Disabled" : "Active" }).eq("id", studentId!);
+    if (error) { toast.error(error.message); return; }
+    toast.success(disabled ? "Student account disabled" : "Student account re-enabled");
+    queryClient.invalidateQueries({ queryKey: ["ca-student", studentId] });
+  };
+
 
   const { data: student } = useQuery({
     queryKey: ["ca-student", studentId],
@@ -185,11 +195,26 @@ export default function CampusAdminStudentDetail() {
               {student.phone && <span>· {student.phone}</span>}
             </div>
           </div>
-          <Badge
-            variant={student.approval_status === "Approved" ? "default" : student.approval_status === "Rejected" ? "destructive" : "secondary"}
-          >
-            {student.approval_status}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {student.status === "Disabled" ? (
+              <Badge variant="outline" className="border-destructive text-destructive">Disabled</Badge>
+            ) : (
+              <Badge
+                variant={student.approval_status === "Approved" ? "default" : student.approval_status === "Rejected" ? "destructive" : "secondary"}
+              >
+                {student.approval_status}
+              </Badge>
+            )}
+            {student.status === "Disabled" ? (
+              <Button size="sm" variant="outline" onClick={() => toggleDisabled(false)}>
+                <RotateCcw className="h-3.5 w-3.5 mr-1" /> Enable account
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => toggleDisabled(true)}>
+                <Ban className="h-3.5 w-3.5 mr-1" /> Disable account
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 

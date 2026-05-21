@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, CheckCircle2, XCircle, Pencil, Save, ChevronRight } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Pencil, Save, ChevronRight, Ban, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CampusAdminStudents() {
@@ -82,6 +82,17 @@ export default function CampusAdminStudents() {
     queryClient.invalidateQueries({ queryKey: ["ca-students"] });
     queryClient.invalidateQueries({ queryKey: ["ca-pending-count"] });
     queryClient.invalidateQueries({ queryKey: ["ca-approved-count"] });
+  };
+
+  const setDisabled = async (studentId: string, disabled: boolean) => {
+    const { error } = await supabase.from("students").update({ status: disabled ? "Disabled" : "Active" }).eq("id", studentId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(disabled ? "Student account disabled" : "Student account re-enabled");
+    queryClient.invalidateQueries({ queryKey: ["ca-students"] });
+    queryClient.invalidateQueries({ queryKey: ["ca-students-count"] });
+    queryClient.invalidateQueries({ queryKey: ["ca-approved-count"] });
+    queryClient.invalidateQueries({ queryKey: ["ca-pending-count"] });
+    queryClient.invalidateQueries({ queryKey: ["ca-dash-students"] });
   };
 
   const saveRegNo = async (studentId: string) => {
@@ -180,21 +191,36 @@ export default function CampusAdminStudents() {
                     <td className="py-3 px-4 text-muted-foreground">{s.classes?.name ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{s.email}</td>
                     <td className="py-3 px-4">
-                      <Badge variant={s.approval_status === "Approved" ? "default" : s.approval_status === "Rejected" ? "destructive" : "secondary"} className="text-[11px]">
-                        {s.approval_status}
-                      </Badge>
+                      {s.status === "Disabled" ? (
+                        <Badge variant="outline" className="text-[11px] border-destructive text-destructive">Disabled</Badge>
+                      ) : (
+                        <Badge variant={s.approval_status === "Approved" ? "default" : s.approval_status === "Rejected" ? "destructive" : "secondary"} className="text-[11px]">
+                          {s.approval_status}
+                        </Badge>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-right" onClick={stop}>
-                      {s.approval_status === "Pending" && (
-                        <div className="flex justify-end gap-1">
-                          <Button size="sm" onClick={() => setApproval(s.id, "Approved")}>
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
+                      <div className="flex justify-end gap-1">
+                        {s.approval_status === "Pending" && s.status !== "Disabled" && (
+                          <>
+                            <Button size="sm" onClick={() => setApproval(s.id, "Approved")}>
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => setApproval(s.id, "Rejected")}>
+                              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                            </Button>
+                          </>
+                        )}
+                        {s.status === "Disabled" ? (
+                          <Button size="sm" variant="outline" onClick={() => setDisabled(s.id, false)}>
+                            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Enable
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => setApproval(s.id, "Rejected")}>
-                            <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => setDisabled(s.id, true)}>
+                            <Ban className="h-3.5 w-3.5 mr-1" /> Disable
                           </Button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
