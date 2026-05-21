@@ -24,6 +24,7 @@ export default function Login() {
   const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [quoteIndex] = useState(() => Math.floor(Math.random() * quotes.length));
   const [stats, setStats] = useState({ courses: 0, students: 0, campuses: 0 });
