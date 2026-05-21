@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { GraduationCap, Loader2, BookOpen, Users, Award } from "lucide-react";
+import { GraduationCap, Loader2, BookOpen, Users, Award, Eye, EyeOff } from "lucide-react";
 import brandLogo from "@/assets/superior-logo.png";
 import { toast } from "sonner";
 import collegeBg from "@/assets/college-bg.jpg";
