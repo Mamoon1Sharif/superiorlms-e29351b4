@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { GraduationCap, Loader2, BookOpen, Users, Award } from "lucide-react";
+import { GraduationCap, Loader2, BookOpen, Users, Award, Eye, EyeOff } from "lucide-react";
 import brandLogo from "@/assets/superior-logo.png";
 import { toast } from "sonner";
 import collegeBg from "@/assets/college-bg.jpg";
@@ -24,6 +24,7 @@ export default function Login() {
   const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [quoteIndex] = useState(() => Math.floor(Math.random() * quotes.length));
   const [stats, setStats] = useState({ courses: 0, students: 0, campuses: 0 });
@@ -247,14 +248,25 @@ export default function Login() {
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">Password</Label>
                   </div>
-                  <Input
-                    required
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="h-11"
-                  />
+                  <div className="relative">
+                    <Input
+                      required
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="h-11 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
                   {loading ? (
