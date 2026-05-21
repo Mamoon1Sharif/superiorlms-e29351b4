@@ -33,18 +33,42 @@ export default function Analytics() {
   const { data: enrollments } = useQuery({
     queryKey: ["enrollments-analytics"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("program_enrollments").select("status, student_id");
-      if (error) throw error;
-      return data;
+      const pageSize = 1000;
+      let from = 0;
+      const all: any[] = [];
+      while (true) {
+        const { data, error } = await supabase
+          .from("program_enrollments")
+          .select("status, student_id")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
   });
 
   const { data: enrollmentStudents } = useQuery({
     queryKey: ["enrollment-students-analytics"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("students").select("id, campus_id");
-      if (error) throw error;
-      return data;
+      const pageSize = 1000;
+      let from = 0;
+      const all: any[] = [];
+      while (true) {
+        const { data, error } = await supabase
+          .from("students")
+          .select("id, campus_id")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
   });
 
