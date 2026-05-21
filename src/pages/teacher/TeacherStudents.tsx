@@ -89,40 +89,43 @@ export default function TeacherStudents() {
   });
 
   const assignedClassIds = Array.from(new Set(classAssignments?.map((a: any) => a.class_id) ?? []));
-  const assignedCampusIds = Array.from(
-    new Set(classAssignments?.map((a: any) => a.classes?.campus_id).filter(Boolean) ?? []),
-  );
+
+  // Build per-class allowed sections. If any assignment for a class has section_id = null,
+  // the teacher can see every section of that class (allowedSections = null sentinel).
+  // Otherwise only the explicitly assigned sections are allowed.
+  const allowedSectionsByClass: Record<string, Set<string> | null> = {};
+  (classAssignments ?? []).forEach((a: any) => {
+    if (a.section_id === null || a.section_id === undefined) {
+      allowedSectionsByClass[a.class_id] = null; // all sections
+    } else if (allowedSectionsByClass[a.class_id] !== null) {
+      const set = allowedSectionsByClass[a.class_id] ?? new Set<string>();
+      set.add(a.section_id);
+      allowedSectionsByClass[a.class_id] = set;
+    }
+  });
 
   const { data: students } = useQuery({
-    queryKey: ["my-students", assignedClassIds, assignedCampusIds],
+    queryKey: ["my-students", assignedClassIds],
     queryFn: async () => {
-      const [byClass, byCampusNull] = await Promise.all([
-        assignedClassIds.length
-          ? supabase
-              .from("students")
-              .select("*, classes(name), campuses(name)")
-              .in("class_id", assignedClassIds)
-          : Promise.resolve({ data: [], error: null } as any),
-        assignedCampusIds.length
-          ? supabase
-              .from("students")
-              .select("*, classes(name), campuses(name)")
-              .is("class_id", null)
-              .in("campus_id", assignedCampusIds)
-          : Promise.resolve({ data: [], error: null } as any),
-      ]);
-      if (byClass.error) throw byClass.error;
-      if (byCampusNull.error) throw byCampusNull.error;
-      const map = new Map<string, any>();
-      [...(byClass.data ?? []), ...(byCampusNull.data ?? [])].forEach((s: any) => map.set(s.id, s));
-      const list = Array.from(map.values());
+      if (!assignedClassIds.length) return [];
+      const { data, error } = await supabase
+        .from("students")
+        .select("*, classes(name), campuses(name)")
+        .in("class_id", assignedClassIds);
+      if (error) throw error;
+      const list = data ?? [];
       const sectionIds = Array.from(new Set(list.map((s: any) => s.section_id).filter(Boolean)));
       if (sectionIds.length) {
         const { data: secs } = await supabase.from("sections").select("id, name").in("id", sectionIds);
         const byId = new Map((secs ?? []).map((s: any) => [s.id, s]));
         list.forEach((s: any) => { s.sections = s.section_id ? byId.get(s.section_id) ?? null : null; });
       }
-      return list;
+      // Enforce section-level access
+      return list.filter((s: any) => {
+        const allowed = allowedSectionsByClass[s.class_id];
+        if (allowed === null || allowed === undefined) return allowed === null; // null = all, undefined = class not assigned
+        return s.section_id ? allowed.has(s.section_id) : false;
+      });
     },
     enabled: assignedClassIds.length > 0,
   });
@@ -156,13 +159,12 @@ export default function TeacherStudents() {
           ))}
         </TabsList>
         {tabsByClass.map((a: any) => {
-          const allClassStudents = students?.filter(
-            (s) => s.class_id === a.class_id || (s.class_id === null && s.campus_id === a.classes?.campus_id),
-          ) ?? [];
+          const allClassStudents = students?.filter((s) => s.class_id === a.class_id) ?? [];
+          const allowed = allowedSectionsByClass[a.class_id];
           const classSections = Array.from(
             new Map(
               allClassStudents
-                .filter((s: any) => s.section_id)
+                .filter((s: any) => s.section_id && (allowed === null || allowed?.has(s.section_id)))
                 .map((s: any) => [s.section_id, { id: s.section_id, name: (s as any).sections?.name || "—" }]),
             ).values(),
           );
