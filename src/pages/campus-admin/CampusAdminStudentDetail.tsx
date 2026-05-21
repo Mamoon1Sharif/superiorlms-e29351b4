@@ -43,6 +43,50 @@ export default function CampusAdminStudentDetail() {
     enabled: !!studentId,
   });
 
+  const campusId = (student as any)?.campus_id;
+
+  const { data: campusClasses } = useQuery({
+    queryKey: ["ca-detail-classes", campusId],
+    queryFn: async () => {
+      const { data } = await supabase.from("classes").select("id, name").eq("campus_id", campusId).order("name");
+      return data ?? [];
+    },
+    enabled: !!campusId && moveOpen,
+  });
+
+  const { data: campusSections } = useQuery({
+    queryKey: ["ca-detail-sections", moveClassId],
+    queryFn: async () => {
+      if (!moveClassId) return [];
+      const { data } = await supabase.from("sections").select("id, name").eq("class_id", moveClassId).order("name");
+      return data ?? [];
+    },
+    enabled: !!moveClassId,
+  });
+
+  useEffect(() => {
+    if (moveOpen && student) {
+      setMoveClassId((student as any).class_id ?? "");
+      setMoveSectionId((student as any).section_id ?? "none");
+    }
+  }, [moveOpen, student]);
+
+  const handleMove = async () => {
+    if (!moveClassId) { toast.error("Please select a class"); return; }
+    setMoving(true);
+    const { error } = await supabase
+      .from("students")
+      .update({ class_id: moveClassId, section_id: moveSectionId === "none" ? null : moveSectionId })
+      .eq("id", studentId!);
+    setMoving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Student moved successfully");
+    setMoveOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["ca-student", studentId] });
+    queryClient.invalidateQueries({ queryKey: ["ca-students"] });
+  };
+
+
   const { data: courseProgress } = useQuery({
     queryKey: ["ca-student-course-progress", studentId],
     queryFn: async () => {
