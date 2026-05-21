@@ -112,7 +112,7 @@ export default function Dashboard() {
   const { data: teachersCount } = useCount("teachers");
   const { data: modulesCount } = useCount("modules");
   const { data: lessonsCount } = useCount("lessons");
-  const { data: enrollmentsCount } = useCount("enrollments");
+  const { data: enrollmentsCount } = useCount("program_enrollments");
 
   const totalStudents = studentsCount ?? students?.length ?? 0;
   const publishedCourses = courses?.filter((c) => c.status === "Published").length ?? 0;
@@ -217,50 +217,6 @@ export default function Dashboard() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Recent Student Registrations</CardTitle></CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Student</th>
-                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Region</th>
-                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Campus</th>
-                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Class (Section)</th>
-                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Registered</th>
-                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(recentStudents ?? []).map((s: any) => {
-                  const fullName = [s.first_name, s.last_name].filter(Boolean).join(" ") || s.name;
-                  const className = s.classes?.name
-                    ? `${s.classes.name}${s.sections?.name ? ` (${s.sections.name})` : ""}`
-                    : "—";
-                  return (
-                    <tr key={s.id} className="border-b last:border-0">
-                      <td className="py-3 px-2 font-medium">{fullName}</td>
-                      <td className="py-3 px-2 text-muted-foreground">{s.campuses?.regions?.name ?? "—"}</td>
-                      <td className="py-3 px-2 text-muted-foreground">{s.campuses?.name ?? "—"}</td>
-                      <td className="py-3 px-2 text-muted-foreground">{className}</td>
-                      <td className="py-3 px-2 text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</td>
-                      <td className="py-3 px-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusColor[s.approval_status] ?? ""}`}>
-                          {s.approval_status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {(recentStudents ?? []).length === 0 && (
-                  <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">No recent registrations</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
