@@ -267,6 +267,52 @@ export default function CampusAdminStudentDetail() {
                 <Ban className="h-3.5 w-3.5 mr-1" /> Disable account
               </Button>
             )}
+            <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <ArrowRightLeft className="h-3.5 w-3.5 mr-1" /> Move class / section
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Move student</DialogTitle>
+                  <DialogDescription>
+                    Reassign {student.name} to a different class or section within this campus. Course progress is preserved.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label>Class</Label>
+                    <Select value={moveClassId} onValueChange={(v) => { setMoveClassId(v); setMoveSectionId("none"); }}>
+                      <SelectTrigger><SelectValue placeholder="Select a class" /></SelectTrigger>
+                      <SelectContent>
+                        {(campusClasses ?? []).map((c: any) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Section</Label>
+                    <Select value={moveSectionId} onValueChange={setMoveSectionId} disabled={!moveClassId}>
+                      <SelectTrigger><SelectValue placeholder="Select a section" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No section</SelectItem>
+                        {(campusSections ?? []).map((s: any) => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setMoveOpen(false)}>Cancel</Button>
+                  <Button onClick={handleMove} disabled={moving || !moveClassId}>
+                    {moving ? "Moving..." : "Move student"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
