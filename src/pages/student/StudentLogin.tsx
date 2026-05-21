@@ -17,13 +17,28 @@ export default function StudentLogin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      setLoading(false);
       toast.error(error.message);
-    } else {
-      navigate("/student");
+      return;
     }
+    // Check if student account is disabled
+    if (signInData.user) {
+      const { data: studentRow } = await supabase
+        .from("students")
+        .select("status")
+        .eq("user_id", signInData.user.id)
+        .maybeSingle();
+      if (studentRow?.status === "Disabled") {
+        await supabase.auth.signOut();
+        setLoading(false);
+        toast.error("Your account has been disabled. Please contact your campus administrator.");
+        return;
+      }
+    }
+    setLoading(false);
+    navigate("/student");
   };
 
   return (
