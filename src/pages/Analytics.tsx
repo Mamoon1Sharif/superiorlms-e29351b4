@@ -318,14 +318,27 @@ function EnrollmentStats() {
   const { data: rows, isLoading } = useQuery({
     queryKey: ["admin-enrollment-stats"],
     queryFn: async () => {
-      const [{ data: enrollments, error: eErr }, { data: students, error: sErr }, { data: campuses, error: cErr }] = await Promise.all([
-        supabase.from("program_enrollments").select("status, student_id"),
-        supabase.from("students").select("id, campus_id"),
-        supabase.from("campuses").select("id, name, city"),
+      const pageAll = async <T,>(builder: () => any): Promise<T[]> => {
+        const pageSize = 1000;
+        let from = 0;
+        const all: T[] = [];
+        while (true) {
+          const { data, error } = await builder().range(from, from + pageSize - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          all.push(...(data as T[]));
+          if (data.length < pageSize) break;
+          from += pageSize;
+        }
+        return all;
+      };
+
+      const [enrollments, students, campuses] = await Promise.all([
+        pageAll<any>(() => supabase.from("program_enrollments").select("status, student_id")),
+        pageAll<any>(() => supabase.from("students").select("id, campus_id")),
+        pageAll<any>(() => supabase.from("campuses").select("id, name, city")),
       ]);
-      if (eErr) throw eErr;
-      if (sErr) throw sErr;
-      if (cErr) throw cErr;
+
 
       const studentCampus: Record<string, string | null> = {};
       (students ?? []).forEach((s: any) => (studentCampus[s.id] = s.campus_id));
