@@ -250,11 +250,12 @@ export default function TeacherGrading() {
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Assignment</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Grade</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Comments</th>
+                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {graded.length === 0 ? (
-                  <tr><td colSpan={4} className="py-6 text-center text-muted-foreground text-sm">No graded submissions</td></tr>
+                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground text-sm">No graded submissions</td></tr>
                 ) : graded.map((s) => {
                   const assignment = getAssignment(s.assignment_id);
                   return (
@@ -265,6 +266,11 @@ export default function TeacherGrading() {
                         <Badge variant="default" className="text-[11px]">{s.grade}/{(assignment as any)?.max_marks ?? 100}</Badge>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground text-xs max-w-[200px] truncate">{(s as any).grading_comments || "—"}</td>
+                      <td className="py-3 px-4 text-right">
+                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setRejectingSubmission(s)}>
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Remove
+                        </Button>
+                      </td>
                     </tr>
                   );
                 })}
