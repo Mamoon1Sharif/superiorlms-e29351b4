@@ -43,13 +43,27 @@ export default function Dashboard() {
   });
 
   const { data: students } = useQuery({
-    queryKey: ["students"],
+    queryKey: ["students-all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("students").select("*, campuses(name)");
-      if (error) throw error;
-      return data;
+      // Supabase caps each request at 1000 rows; page through to get all.
+      const pageSize = 1000;
+      let from = 0;
+      const all: any[] = [];
+      while (true) {
+        const { data, error } = await supabase
+          .from("students")
+          .select("id, campus_id")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        all.push(...(data ?? []));
+        if (!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
   });
+
+  const { data: studentsCount } = useCount("students");
 
   const { data: courses } = useQuery({
     queryKey: ["courses"],
@@ -60,12 +74,23 @@ export default function Dashboard() {
     },
   });
 
-  const { data: enrollments } = useQuery({
-    queryKey: ["enrollments"],
+  const { data: enrollmentsAgg } = useQuery({
+    queryKey: ["enrollments-agg"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("enrollments").select("*, students(name, campuses(name)), courses(title)");
-      if (error) throw error;
-      return data;
+      const pageSize = 1000;
+      let from = 0;
+      const all: any[] = [];
+      while (true) {
+        const { data, error } = await supabase
+          .from("enrollments")
+          .select("status, progress")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        all.push(...(data ?? []));
+        if (!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
   });
 
@@ -89,13 +114,14 @@ export default function Dashboard() {
   const { data: lessonsCount } = useCount("lessons");
   const { data: enrollmentsCount } = useCount("enrollments");
 
-  const totalStudents = students?.length ?? 0;
+  const totalStudents = studentsCount ?? students?.length ?? 0;
   const publishedCourses = courses?.filter((c) => c.status === "Published").length ?? 0;
   const totalCampuses = campuses?.length ?? 0;
-  const approvedEnrollments = enrollments?.filter((e) => e.status === "Approved") ?? [];
+  const approvedEnrollments = enrollmentsAgg?.filter((e) => e.status === "Approved") ?? [];
   const avgProgress = approvedEnrollments.length > 0
-    ? Math.round(approvedEnrollments.reduce((sum, e) => sum + e.progress, 0) / approvedEnrollments.length)
+    ? Math.round(approvedEnrollments.reduce((sum, e) => sum + (e.progress ?? 0), 0) / approvedEnrollments.length)
     : 0;
+
 
   const NO_REGION = "__none__";
   const regionList = [...(regions ?? []), { id: NO_REGION, name: "Unassigned" }];
