@@ -10,6 +10,15 @@ import { toast } from "sonner";
 
 export default function CampusAdminStudentDetail() {
   const { id: studentId } = useParams();
+  const queryClient = useQueryClient();
+
+  const toggleDisabled = async (disabled: boolean) => {
+    const { error } = await supabase.from("students").update({ status: disabled ? "Disabled" : "Active" }).eq("id", studentId!);
+    if (error) { toast.error(error.message); return; }
+    toast.success(disabled ? "Student account disabled" : "Student account re-enabled");
+    queryClient.invalidateQueries({ queryKey: ["ca-student", studentId] });
+  };
+
 
   const { data: student } = useQuery({
     queryKey: ["ca-student", studentId],
