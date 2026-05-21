@@ -18,8 +18,10 @@ export function StudentProgressDetail({ studentId }: Props) {
     queryFn: async () => {
       const { data: courses } = await supabase
         .from("courses")
-        .select("id, title, status")
-        .eq("status", "Published");
+        .select("id, title, status, sequence")
+        .eq("status", "Published")
+        .order("sequence", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true });
       if (!courses?.length) return [];
 
       const courseIds = courses.map((c) => c.id);
