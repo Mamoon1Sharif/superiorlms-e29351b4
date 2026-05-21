@@ -227,7 +227,8 @@ export default function QuizPlayer({ moduleId, questions, studentId, completed, 
 
           {type === "true_false" && (
             <RadioGroup
-              value={answers[currentQ.id]?.toString()}
+              key={currentQ.id}
+              value={answers[currentQ.id] !== undefined ? answers[currentQ.id].toString() : ""}
               onValueChange={(val) => setAnswers(prev => ({ ...prev, [currentQ.id]: parseInt(val) }))}
               className="space-y-2"
             >
