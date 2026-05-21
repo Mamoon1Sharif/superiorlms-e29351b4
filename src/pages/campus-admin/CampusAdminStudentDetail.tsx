@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,12 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, BookOpen, ClipboardList, FileText, Ban, RotateCcw } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, BookOpen, ClipboardList, FileText, Ban, RotateCcw, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CampusAdminStudentDetail() {
   const { id: studentId } = useParams();
   const queryClient = useQueryClient();
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveClassId, setMoveClassId] = useState<string>("");
+  const [moveSectionId, setMoveSectionId] = useState<string>("none");
+  const [moving, setMoving] = useState(false);
 
   const toggleDisabled = async (disabled: boolean) => {
     const { error } = await supabase.from("students").update({ status: disabled ? "Disabled" : "Active" }).eq("id", studentId!);
@@ -18,6 +26,7 @@ export default function CampusAdminStudentDetail() {
     toast.success(disabled ? "Student account disabled" : "Student account re-enabled");
     queryClient.invalidateQueries({ queryKey: ["ca-student", studentId] });
   };
+
 
 
   const { data: student } = useQuery({
