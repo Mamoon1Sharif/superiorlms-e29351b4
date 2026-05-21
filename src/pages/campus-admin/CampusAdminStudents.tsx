@@ -84,6 +84,17 @@ export default function CampusAdminStudents() {
     queryClient.invalidateQueries({ queryKey: ["ca-approved-count"] });
   };
 
+  const setDisabled = async (studentId: string, disabled: boolean) => {
+    const { error } = await supabase.from("students").update({ status: disabled ? "Disabled" : "Active" }).eq("id", studentId);
+    if (error) { toast.error(error.message); return; }
+    toast.success(disabled ? "Student account disabled" : "Student account re-enabled");
+    queryClient.invalidateQueries({ queryKey: ["ca-students"] });
+    queryClient.invalidateQueries({ queryKey: ["ca-students-count"] });
+    queryClient.invalidateQueries({ queryKey: ["ca-approved-count"] });
+    queryClient.invalidateQueries({ queryKey: ["ca-pending-count"] });
+    queryClient.invalidateQueries({ queryKey: ["ca-dash-students"] });
+  };
+
   const saveRegNo = async (studentId: string) => {
     const { error } = await supabase.from("students").update({ reg_no: regNoDraft }).eq("id", studentId);
     if (error) { toast.error(error.message); return; }
