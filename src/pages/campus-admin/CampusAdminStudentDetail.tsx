@@ -195,11 +195,26 @@ export default function CampusAdminStudentDetail() {
               {student.phone && <span>· {student.phone}</span>}
             </div>
           </div>
-          <Badge
-            variant={student.approval_status === "Approved" ? "default" : student.approval_status === "Rejected" ? "destructive" : "secondary"}
-          >
-            {student.approval_status}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {student.status === "Disabled" ? (
+              <Badge variant="outline" className="border-destructive text-destructive">Disabled</Badge>
+            ) : (
+              <Badge
+                variant={student.approval_status === "Approved" ? "default" : student.approval_status === "Rejected" ? "destructive" : "secondary"}
+              >
+                {student.approval_status}
+              </Badge>
+            )}
+            {student.status === "Disabled" ? (
+              <Button size="sm" variant="outline" onClick={() => toggleDisabled(false)}>
+                <RotateCcw className="h-3.5 w-3.5 mr-1" /> Enable account
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => toggleDisabled(true)}>
+                <Ban className="h-3.5 w-3.5 mr-1" /> Disable account
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
