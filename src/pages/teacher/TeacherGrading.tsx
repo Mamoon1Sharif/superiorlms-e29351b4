@@ -142,6 +142,31 @@ export default function TeacherGrading() {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const rejectSubmission = useMutation({
+    mutationFn: async (sub: any) => {
+      // Remove the assignment submission so the student can resubmit
+      const { error: delErr } = await supabase
+        .from("assignment_submissions")
+        .delete()
+        .eq("id", sub.id);
+      if (delErr) throw delErr;
+      // Also clear the corresponding completion mark so the student is unblocked to resubmit
+      const { error: progErr } = await supabase
+        .from("student_progress")
+        .delete()
+        .eq("student_id", sub.student_id)
+        .eq("item_id", sub.assignment_id)
+        .eq("item_type", "assignment");
+      if (progErr) throw progErr;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["class-submissions"] });
+      toast.success("Submission rejected — student can resubmit");
+      setRejectingSubmission(null);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const getStudentName = (studentId: string) =>
     myStudents?.find((s) => s.id === studentId)?.name ?? "Unknown";
 
