@@ -156,27 +156,17 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">Overview of your education network</p>
-      </div>
-
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
         <StatCard title="Regions" value={regionsCount ?? 0} icon={MapPin} iconColor="bg-primary/10 text-primary" />
         <StatCard title="Campuses" value={totalCampuses} icon={Building2} iconColor="bg-warning/10 text-warning" />
         <StatCard title="Classes" value={classesCount ?? 0} icon={Layers} iconColor="bg-accent/10 text-accent" />
+        <StatCard title="Sections" value={sectionsCount ?? 0} icon={Layers} iconColor="bg-primary/10 text-primary" />
         <StatCard title="Students" value={totalStudents} icon={Users} />
         <StatCard title="Teachers" value={teachersCount ?? 0} icon={UserCheck} iconColor="bg-success/10 text-success" />
-        <StatCard title="Courses" value={courses?.length ?? 0} icon={BookOpen} iconColor="bg-accent/10 text-accent" />
-        <StatCard title="Published" value={publishedCourses} icon={GraduationCap} iconColor="bg-success/10 text-success" />
         <StatCard title="Modules" value={modulesCount ?? 0} icon={ClipboardCheck} iconColor="bg-primary/10 text-primary" />
         <StatCard title="Lessons" value={lessonsCount ?? 0} icon={PlayCircle} iconColor="bg-warning/10 text-warning" />
         <StatCard title="Enrollments" value={enrollmentsCount ?? 0} icon={FileText} iconColor="bg-accent/10 text-accent" />
-      </div>
-
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
         <StatCard title="Avg. Progress" value={`${avgProgress}%`} icon={TrendingUp} iconColor="bg-success/10 text-success" />
-        <StatCard title="Approved Enrollments" value={approvedEnrollments.length} icon={UserCheck} iconColor="bg-primary/10 text-primary" />
       </div>
 
       <Card>
