@@ -191,21 +191,36 @@ export default function CampusAdminStudents() {
                     <td className="py-3 px-4 text-muted-foreground">{s.classes?.name ?? "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{s.email}</td>
                     <td className="py-3 px-4">
-                      <Badge variant={s.approval_status === "Approved" ? "default" : s.approval_status === "Rejected" ? "destructive" : "secondary"} className="text-[11px]">
-                        {s.approval_status}
-                      </Badge>
+                      {s.status === "Disabled" ? (
+                        <Badge variant="outline" className="text-[11px] border-destructive text-destructive">Disabled</Badge>
+                      ) : (
+                        <Badge variant={s.approval_status === "Approved" ? "default" : s.approval_status === "Rejected" ? "destructive" : "secondary"} className="text-[11px]">
+                          {s.approval_status}
+                        </Badge>
+                      )}
                     </td>
                     <td className="py-3 px-4 text-right" onClick={stop}>
-                      {s.approval_status === "Pending" && (
-                        <div className="flex justify-end gap-1">
-                          <Button size="sm" onClick={() => setApproval(s.id, "Approved")}>
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
+                      <div className="flex justify-end gap-1">
+                        {s.approval_status === "Pending" && s.status !== "Disabled" && (
+                          <>
+                            <Button size="sm" onClick={() => setApproval(s.id, "Approved")}>
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => setApproval(s.id, "Rejected")}>
+                              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                            </Button>
+                          </>
+                        )}
+                        {s.status === "Disabled" ? (
+                          <Button size="sm" variant="outline" onClick={() => setDisabled(s.id, false)}>
+                            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Enable
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => setApproval(s.id, "Rejected")}>
-                            <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => setDisabled(s.id, true)}>
+                            <Ban className="h-3.5 w-3.5 mr-1" /> Disable
                           </Button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
