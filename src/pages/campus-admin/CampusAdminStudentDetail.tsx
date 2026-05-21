@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,12 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, BookOpen, ClipboardList, FileText, Ban, RotateCcw } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, BookOpen, ClipboardList, FileText, Ban, RotateCcw, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CampusAdminStudentDetail() {
   const { id: studentId } = useParams();
   const queryClient = useQueryClient();
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveClassId, setMoveClassId] = useState<string>("");
+  const [moveSectionId, setMoveSectionId] = useState<string>("none");
+  const [moving, setMoving] = useState(false);
 
   const toggleDisabled = async (disabled: boolean) => {
     const { error } = await supabase.from("students").update({ status: disabled ? "Disabled" : "Active" }).eq("id", studentId!);
@@ -18,6 +26,7 @@ export default function CampusAdminStudentDetail() {
     toast.success(disabled ? "Student account disabled" : "Student account re-enabled");
     queryClient.invalidateQueries({ queryKey: ["ca-student", studentId] });
   };
+
 
 
   const { data: student } = useQuery({
@@ -33,6 +42,50 @@ export default function CampusAdminStudentDetail() {
     },
     enabled: !!studentId,
   });
+
+  const campusId = (student as any)?.campus_id;
+
+  const { data: campusClasses } = useQuery({
+    queryKey: ["ca-detail-classes", campusId],
+    queryFn: async () => {
+      const { data } = await supabase.from("classes").select("id, name").eq("campus_id", campusId).order("name");
+      return data ?? [];
+    },
+    enabled: !!campusId && moveOpen,
+  });
+
+  const { data: campusSections } = useQuery({
+    queryKey: ["ca-detail-sections", moveClassId],
+    queryFn: async () => {
+      if (!moveClassId) return [];
+      const { data } = await supabase.from("sections").select("id, name").eq("class_id", moveClassId).order("name");
+      return data ?? [];
+    },
+    enabled: !!moveClassId,
+  });
+
+  useEffect(() => {
+    if (moveOpen && student) {
+      setMoveClassId((student as any).class_id ?? "");
+      setMoveSectionId((student as any).section_id ?? "none");
+    }
+  }, [moveOpen, student]);
+
+  const handleMove = async () => {
+    if (!moveClassId) { toast.error("Please select a class"); return; }
+    setMoving(true);
+    const { error } = await supabase
+      .from("students")
+      .update({ class_id: moveClassId, section_id: moveSectionId === "none" ? null : moveSectionId })
+      .eq("id", studentId!);
+    setMoving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Student moved successfully");
+    setMoveOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["ca-student", studentId] });
+    queryClient.invalidateQueries({ queryKey: ["ca-students"] });
+  };
+
 
   const { data: courseProgress } = useQuery({
     queryKey: ["ca-student-course-progress", studentId],
@@ -214,6 +267,52 @@ export default function CampusAdminStudentDetail() {
                 <Ban className="h-3.5 w-3.5 mr-1" /> Disable account
               </Button>
             )}
+            <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <ArrowRightLeft className="h-3.5 w-3.5 mr-1" /> Move class / section
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Move student</DialogTitle>
+                  <DialogDescription>
+                    Reassign {student.name} to a different class or section within this campus. Course progress is preserved.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label>Class</Label>
+                    <Select value={moveClassId} onValueChange={(v) => { setMoveClassId(v); setMoveSectionId("none"); }}>
+                      <SelectTrigger><SelectValue placeholder="Select a class" /></SelectTrigger>
+                      <SelectContent>
+                        {(campusClasses ?? []).map((c: any) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Section</Label>
+                    <Select value={moveSectionId} onValueChange={setMoveSectionId} disabled={!moveClassId}>
+                      <SelectTrigger><SelectValue placeholder="Select a section" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No section</SelectItem>
+                        {(campusSections ?? []).map((s: any) => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setMoveOpen(false)}>Cancel</Button>
+                  <Button onClick={handleMove} disabled={moving || !moveClassId}>
+                    {moving ? "Moving..." : "Move student"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
