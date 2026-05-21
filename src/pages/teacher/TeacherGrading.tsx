@@ -224,6 +224,9 @@ export default function TeacherGrading() {
                           </a>
                         </Button>
                       )}
+                      <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setRejectingSubmission(s)}>
+                        <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                      </Button>
                       <Button size="sm" onClick={() => { setGradingSubmission(s); setGrade(""); setComments(""); }}>
                         <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Grade
                       </Button>
