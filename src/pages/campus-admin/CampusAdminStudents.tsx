@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, CheckCircle2, XCircle, Pencil, Save, ChevronRight } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Pencil, Save, ChevronRight, Ban, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CampusAdminStudents() {
