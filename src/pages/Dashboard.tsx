@@ -109,6 +109,7 @@ export default function Dashboard() {
 
   const { data: regionsCount } = useCount("regions");
   const { data: classesCount } = useCount("classes");
+  const { data: sectionsCount } = useCount("sections");
   const { data: teachersCount } = useCount("teachers");
   const { data: modulesCount } = useCount("modules");
   const { data: lessonsCount } = useCount("lessons");
