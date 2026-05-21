@@ -33,18 +33,42 @@ export default function Analytics() {
   const { data: enrollments } = useQuery({
     queryKey: ["enrollments-analytics"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("program_enrollments").select("status, student_id");
-      if (error) throw error;
-      return data;
+      const pageSize = 1000;
+      let from = 0;
+      const all: any[] = [];
+      while (true) {
+        const { data, error } = await supabase
+          .from("program_enrollments")
+          .select("status, student_id")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
   });
 
   const { data: enrollmentStudents } = useQuery({
     queryKey: ["enrollment-students-analytics"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("students").select("id, campus_id");
-      if (error) throw error;
-      return data;
+      const pageSize = 1000;
+      let from = 0;
+      const all: any[] = [];
+      while (true) {
+        const { data, error } = await supabase
+          .from("students")
+          .select("id, campus_id")
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
   });
 
@@ -52,41 +76,57 @@ export default function Analytics() {
   const { data: studentProgressMap } = useQuery({
     queryKey: ["analytics-student-progress"],
     queryFn: async () => {
-      const [{ data: students }, { data: courses }] = await Promise.all([
-        supabase.from("students").select("id, campus_id"),
-        supabase.from("courses").select("id").eq("status", "Published"),
-      ]);
-      const courseIds = (courses ?? []).map((c: any) => c.id);
-      if (!courseIds.length || !students?.length) return { byCampus: {} as Record<string, number[]> };
+      const pageAll = async <T,>(builder: () => any): Promise<T[]> => {
+        const pageSize = 1000;
+        let from = 0;
+        const all: T[] = [];
+        while (true) {
+          const { data, error } = await builder().range(from, from + pageSize - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          all.push(...(data as T[]));
+          if (data.length < pageSize) break;
+          from += pageSize;
+        }
+        return all;
+      };
 
-      const { data: mods } = await supabase
-        .from("modules").select("id, course_id").in("course_id", courseIds);
-      const moduleIds = (mods ?? []).map((m: any) => m.id);
+      const [students, courses] = await Promise.all([
+        pageAll<any>(() => supabase.from("students").select("id, campus_id")),
+        pageAll<any>(() => supabase.from("courses").select("id").eq("status", "Published")),
+      ]);
+      const courseIds = courses.map((c: any) => c.id);
+      if (!courseIds.length || !students.length) return { byCampus: {} as Record<string, number[]> };
+
+      const mods = await pageAll<any>(() =>
+        supabase.from("modules").select("id, course_id").in("course_id", courseIds)
+      );
+      const moduleIds = mods.map((m: any) => m.id);
       if (!moduleIds.length) return { byCampus: {} as Record<string, number[]> };
 
-      const [{ data: lessons }, { data: quizQs }, { data: assignments }, { data: prog }] = await Promise.all([
-        supabase.from("lessons").select("id, module_id").in("module_id", moduleIds),
-        supabase.from("quiz_questions").select("module_id").in("module_id", moduleIds),
-        supabase.from("assignment_details").select("id, module_id").in("module_id", moduleIds),
-        supabase.from("student_progress").select("student_id, item_id, completed").in("module_id", moduleIds),
+      const [lessons, quizQs, assignments, prog] = await Promise.all([
+        pageAll<any>(() => supabase.from("lessons").select("id, module_id").in("module_id", moduleIds)),
+        pageAll<any>(() => supabase.from("quiz_questions").select("module_id").in("module_id", moduleIds)),
+        pageAll<any>(() => supabase.from("assignment_details").select("id, module_id").in("module_id", moduleIds)),
+        pageAll<any>(() => supabase.from("student_progress").select("student_id, item_id, completed").in("module_id", moduleIds)),
       ]);
 
       const valid = new Set<string>();
-      (lessons ?? []).forEach((l: any) => valid.add(l.id));
-      (assignments ?? []).forEach((a: any) => valid.add(a.id));
-      const quizModules = new Set((quizQs ?? []).map((q: any) => q.module_id));
+      lessons.forEach((l: any) => valid.add(l.id));
+      assignments.forEach((a: any) => valid.add(a.id));
+      const quizModules = new Set(quizQs.map((q: any) => q.module_id));
       quizModules.forEach((id) => valid.add(id as string));
       const total = valid.size;
 
       const byStudent: Record<string, Set<string>> = {};
-      (prog ?? []).forEach((p: any) => {
+      prog.forEach((p: any) => {
         if (p.completed && valid.has(p.item_id)) {
           (byStudent[p.student_id] = byStudent[p.student_id] ?? new Set()).add(p.item_id);
         }
       });
 
       const byCampus: Record<string, number[]> = {};
-      (students ?? []).forEach((s: any) => {
+      students.forEach((s: any) => {
         if (!s.campus_id) return;
         const pct = total ? Math.min(100, Math.round(((byStudent[s.id]?.size ?? 0) * 100) / total)) : 0;
         (byCampus[s.campus_id] = byCampus[s.campus_id] ?? []).push(pct);
@@ -278,14 +318,27 @@ function EnrollmentStats() {
   const { data: rows, isLoading } = useQuery({
     queryKey: ["admin-enrollment-stats"],
     queryFn: async () => {
-      const [{ data: enrollments, error: eErr }, { data: students, error: sErr }, { data: campuses, error: cErr }] = await Promise.all([
-        supabase.from("program_enrollments").select("status, student_id"),
-        supabase.from("students").select("id, campus_id"),
-        supabase.from("campuses").select("id, name, city"),
+      const pageAll = async <T,>(builder: () => any): Promise<T[]> => {
+        const pageSize = 1000;
+        let from = 0;
+        const all: T[] = [];
+        while (true) {
+          const { data, error } = await builder().range(from, from + pageSize - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          all.push(...(data as T[]));
+          if (data.length < pageSize) break;
+          from += pageSize;
+        }
+        return all;
+      };
+
+      const [enrollments, students, campuses] = await Promise.all([
+        pageAll<any>(() => supabase.from("program_enrollments").select("status, student_id")),
+        pageAll<any>(() => supabase.from("students").select("id, campus_id")),
+        pageAll<any>(() => supabase.from("campuses").select("id, name, city")),
       ]);
-      if (eErr) throw eErr;
-      if (sErr) throw sErr;
-      if (cErr) throw cErr;
+
 
       const studentCampus: Record<string, string | null> = {};
       (students ?? []).forEach((s: any) => (studentCampus[s.id] = s.campus_id));
