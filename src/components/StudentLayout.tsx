@@ -1,14 +1,40 @@
+import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { BookOpen, LayoutDashboard, GraduationCap } from "lucide-react";
 import brandLogo from "@/assets/superior-logo.png";
 import UserMenu from "@/components/UserMenu";
+import { toast } from "sonner";
 
 export default function StudentLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
+  const [checking, setChecking] = useState(true);
 
-  if (loading) {
+  useEffect(() => {
+    if (loading) return;
+    if (!user) { setChecking(false); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("students")
+        .select("status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (data?.status === "Disabled") {
+        toast.error("Your account has been disabled. Please contact your campus administrator.");
+        await signOut();
+        navigate("/login", { replace: true });
+        return;
+      }
+      setChecking(false);
+    })();
+    return () => { cancelled = true; };
+  }, [user, loading, signOut, navigate]);
+
+  if (loading || checking) {
     return <div className="min-h-screen flex items-center justify-center bg-background">Loading...</div>;
   }
 
