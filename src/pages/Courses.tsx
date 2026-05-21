@@ -147,7 +147,6 @@ export default function Courses() {
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{course.moduleCount} modules</span>
-                  <span>{course.studentCount} students</span>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Video className="h-3 w-3" /> {course.videoCount} Videos</span>
