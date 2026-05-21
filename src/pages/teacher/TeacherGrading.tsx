@@ -18,6 +18,7 @@ export default function TeacherGrading() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [gradingSubmission, setGradingSubmission] = useState<any>(null);
+  const [rejectingSubmission, setRejectingSubmission] = useState<any>(null);
   const [grade, setGrade] = useState("");
   const [comments, setComments] = useState("");
 
