@@ -309,55 +309,44 @@ export default function Analytics() {
         </Card>
       </div>
 
-      <EnrollmentStats />
+      <EnrollmentStats
+        enrollments={enrollments ?? []}
+        students={enrollmentStudents ?? []}
+        campuses={campuses ?? []}
+      />
     </div>
   );
 }
 
-function EnrollmentStats() {
-  const { data: rows, isLoading } = useQuery({
-    queryKey: ["admin-enrollment-stats"],
-    queryFn: async () => {
-      const pageAll = async <T,>(builder: () => any): Promise<T[]> => {
-        const pageSize = 1000;
-        let from = 0;
-        const all: T[] = [];
-        while (true) {
-          const { data, error } = await builder().range(from, from + pageSize - 1);
-          if (error) throw error;
-          if (!data || data.length === 0) break;
-          all.push(...(data as T[]));
-          if (data.length < pageSize) break;
-          from += pageSize;
-        }
-        return all;
-      };
+function EnrollmentStats({
+  enrollments,
+  students,
+  campuses,
+}: {
+  enrollments: any[];
+  students: any[];
+  campuses: any[];
+}) {
+  const isLoading = false;
+  const rows = (() => {
+    const studentCampus: Record<string, string | null> = {};
+    students.forEach((s: any) => (studentCampus[s.id] = s.campus_id));
 
-      const [enrollments, students, campuses] = await Promise.all([
-        pageAll<any>(() => supabase.from("program_enrollments").select("status, student_id")),
-        pageAll<any>(() => supabase.from("students").select("id, campus_id")),
-        pageAll<any>(() => supabase.from("campuses").select("id, name, city")),
-      ]);
+    const stats: Record<string, { received: number; approved: number; rejected: number; pending: number }> = {};
+    campuses.forEach((c: any) => (stats[c.id] = { received: 0, approved: 0, rejected: 0, pending: 0 }));
 
+    enrollments.forEach((e: any) => {
+      const cid = studentCampus[e.student_id];
+      if (!cid || !stats[cid]) return;
+      stats[cid].received += 1;
+      if (e.status === "Approved") stats[cid].approved += 1;
+      else if (e.status === "Rejected") stats[cid].rejected += 1;
+      else stats[cid].pending += 1;
+    });
 
-      const studentCampus: Record<string, string | null> = {};
-      (students ?? []).forEach((s: any) => (studentCampus[s.id] = s.campus_id));
+    return campuses.map((c: any) => ({ ...c, ...stats[c.id] }));
+  })();
 
-      const stats: Record<string, { received: number; approved: number; rejected: number; pending: number }> = {};
-      (campuses ?? []).forEach((c: any) => (stats[c.id] = { received: 0, approved: 0, rejected: 0, pending: 0 }));
-
-      (enrollments ?? []).forEach((e: any) => {
-        const cid = studentCampus[e.student_id];
-        if (!cid || !stats[cid]) return;
-        stats[cid].received += 1;
-        if (e.status === "Approved") stats[cid].approved += 1;
-        else if (e.status === "Rejected") stats[cid].rejected += 1;
-        else stats[cid].pending += 1;
-      });
-
-      return (campuses ?? []).map((c: any) => ({ ...c, ...stats[c.id] }));
-    },
-  });
 
   const totals = (rows ?? []).reduce(
     (acc, r: any) => {
