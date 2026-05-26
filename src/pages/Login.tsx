@@ -44,12 +44,15 @@ export default function Login() {
 
   useEffect(() => {
     const loadStats = async () => {
-      const [c, s, ca] = await Promise.all([
-        supabase.from("courses").select("*", { count: "exact", head: true }),
-        supabase.from("students").select("*", { count: "exact", head: true }),
-        supabase.from("campuses").select("*", { count: "exact", head: true }),
-      ]);
-      setStats({ courses: c.count ?? 0, students: s.count ?? 0, campuses: ca.count ?? 0 });
+      const { data } = await supabase.rpc("get_public_stats");
+      const row = Array.isArray(data) ? data[0] : data;
+      if (row) {
+        setStats({
+          courses: Number(row.courses) ?? 0,
+          students: Number(row.students) ?? 0,
+          campuses: Number(row.campuses) ?? 0,
+        });
+      }
     };
     loadStats();
   }, []);
