@@ -246,11 +246,12 @@ export default function CampusAdminStudents() {
           </div>
         </CardContent>
       </Card>
-      {editId && (
+      {editId && campusId && (
         <EditStudentProfileDialog
           studentId={editId}
           open={!!editId}
           onOpenChange={(o) => !o && setEditId(null)}
+          scope={{ kind: "campus", campusId }}
           invalidateKeys={[["ca-students", campusId]]}
         />
       )}
