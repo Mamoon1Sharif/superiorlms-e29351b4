@@ -276,6 +276,7 @@ export default function CampusAdminStudentDetail() {
               studentId={studentId!}
               open={editOpen}
               onOpenChange={setEditOpen}
+              scope={campusId ? { kind: "campus", campusId } : undefined}
               invalidateKeys={[["ca-student", studentId!], ["ca-students"]]}
             />
             <Dialog open={moveOpen} onOpenChange={setMoveOpen}>

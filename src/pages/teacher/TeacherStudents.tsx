@@ -241,11 +241,12 @@ export default function TeacherStudents() {
           );
         })}
       </Tabs>
-      {editId && (
+      {editId && teacher?.id && (
         <EditStudentProfileDialog
           studentId={editId}
           open={!!editId}
           onOpenChange={(o) => !o && setEditId(null)}
+          scope={{ kind: "teacher", teacherId: teacher.id }}
           invalidateKeys={[["my-students", assignedClassIds]]}
         />
       )}
