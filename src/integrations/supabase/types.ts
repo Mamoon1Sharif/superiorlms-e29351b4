@@ -914,6 +914,10 @@ export type Database = {
     }
     Functions: {
       get_user_role: { Args: { _user_id: string }; Returns: string }
+      teacher_can_access_student: {
+        Args: { _student_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "teacher" | "student" | "campus_admin"
