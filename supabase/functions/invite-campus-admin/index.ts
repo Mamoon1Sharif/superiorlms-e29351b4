@@ -16,6 +16,27 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Auth check: only global admin can invite campus admins
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
+    if (userErr || !userData.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles").select("role").eq("user_id", userData.user.id).maybeSingle();
+    if (roleRow?.role !== "admin") {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { name, email, password, campus_id } = await req.json();
 
     if (!name || !email || !password || !campus_id) {
