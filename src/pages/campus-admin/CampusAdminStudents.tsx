@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, CheckCircle2, XCircle, Pencil, Save, ChevronRight, Ban, RotateCcw, UserCog } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Pencil, Save, ChevronRight, Ban, RotateCcw, UserCog, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import EditStudentProfileDialog from "@/components/EditStudentProfileDialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function CampusAdminStudents() {
   const { user } = useAuth();
@@ -157,7 +158,7 @@ export default function CampusAdminStudents() {
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Class</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">Actions</th>
+                  <th className="w-12 text-right py-3 px-4 font-medium text-muted-foreground"></th>
                 </tr>
               </thead>
               <tbody>
@@ -201,31 +202,39 @@ export default function CampusAdminStudents() {
                         </Badge>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-right" onClick={stop}>
-                      <div className="flex justify-end gap-1">
-                        {s.approval_status === "Pending" && s.status !== "Disabled" && (
-                          <>
-                            <Button size="sm" onClick={() => setApproval(s.id, "Approved")}>
-                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Approve
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => setApproval(s.id, "Rejected")}>
-                              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
-                            </Button>
-                          </>
-                        )}
-                        {s.status === "Disabled" ? (
-                          <Button size="sm" variant="outline" onClick={() => setDisabled(s.id, false)}>
-                            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Enable
+                    <td className="py-3 px-4 text-right w-12" onClick={stop}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
                           </Button>
-                        ) : (
-                          <Button size="sm" variant="outline" onClick={() => setDisabled(s.id, true)}>
-                            <Ban className="h-3.5 w-3.5 mr-1" /> Disable
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" onClick={() => setEditId(s.id)}>
-                          <UserCog className="h-3.5 w-3.5 mr-1" /> Edit
-                        </Button>
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                          {s.approval_status === "Pending" && s.status !== "Disabled" && (
+                            <>
+                              <DropdownMenuItem onClick={() => setApproval(s.id, "Approved")}>
+                                <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Approve
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setApproval(s.id, "Rejected")} className="text-destructive focus:text-destructive">
+                                <XCircle className="h-3.5 w-3.5 mr-2" /> Reject
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+                          <DropdownMenuItem onClick={() => setEditId(s.id)}>
+                            <UserCog className="h-3.5 w-3.5 mr-2" /> Edit profile
+                          </DropdownMenuItem>
+                          {s.status === "Disabled" ? (
+                            <DropdownMenuItem onClick={() => setDisabled(s.id, false)}>
+                              <RotateCcw className="h-3.5 w-3.5 mr-2" /> Enable account
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={() => setDisabled(s.id, true)} className="text-destructive focus:text-destructive">
+                              <Ban className="h-3.5 w-3.5 mr-2" /> Disable account
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))}
