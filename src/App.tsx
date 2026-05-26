@@ -28,6 +28,7 @@ import StudentDashboard from "@/pages/student/StudentDashboard";
 import StudentCatalog from "@/pages/student/StudentCatalog";
 import StudentCourseView from "@/pages/student/StudentCourseView";
 import StudentCapstone from "@/pages/student/StudentCapstone";
+import StudentProfile from "@/pages/student/StudentProfile";
 import CapstoneSettings from "@/pages/CapstoneSettings";
 import TeacherDashboard from "@/pages/teacher/TeacherDashboard";
 import TeacherStudents from "@/pages/teacher/TeacherStudents";
@@ -97,6 +98,7 @@ const App = () => (
               <Route path="/student/catalog" element={<StudentCatalog />} />
               <Route path="/student/course/:courseId" element={<StudentCourseView />} />
               <Route path="/student/capstone" element={<StudentCapstone />} />
+              <Route path="/student/profile" element={<StudentProfile />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
