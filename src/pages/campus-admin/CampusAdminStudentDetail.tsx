@@ -9,8 +9,9 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, BookOpen, ClipboardList, FileText, Ban, RotateCcw, ArrowRightLeft } from "lucide-react";
+import { ArrowLeft, BookOpen, ClipboardList, FileText, Ban, RotateCcw, ArrowRightLeft, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import EditStudentProfileDialog from "@/components/EditStudentProfileDialog";
 
 export default function CampusAdminStudentDetail() {
   const { id: studentId } = useParams();
@@ -19,6 +20,7 @@ export default function CampusAdminStudentDetail() {
   const [moveClassId, setMoveClassId] = useState<string>("");
   const [moveSectionId, setMoveSectionId] = useState<string>("none");
   const [moving, setMoving] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const toggleDisabled = async (disabled: boolean) => {
     const { error } = await supabase.from("students").update({ status: disabled ? "Disabled" : "Active" }).eq("id", studentId!);
@@ -267,6 +269,15 @@ export default function CampusAdminStudentDetail() {
                 <Ban className="h-3.5 w-3.5 mr-1" /> Disable account
               </Button>
             )}
+            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-3.5 w-3.5 mr-1" /> Edit profile
+            </Button>
+            <EditStudentProfileDialog
+              studentId={studentId!}
+              open={editOpen}
+              onOpenChange={setEditOpen}
+              invalidateKeys={[["ca-student", studentId!], ["ca-students"]]}
+            />
             <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" variant="outline">

@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, CheckCircle2, XCircle, Pencil, Save, ChevronRight, Ban, RotateCcw } from "lucide-react";
+import { Search, CheckCircle2, XCircle, Pencil, Save, ChevronRight, Ban, RotateCcw, UserCog } from "lucide-react";
 import { toast } from "sonner";
+import EditStudentProfileDialog from "@/components/EditStudentProfileDialog";
 
 export default function CampusAdminStudents() {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ export default function CampusAdminStudents() {
   const [regNoDraft, setRegNoDraft] = useState("");
   const [classFilter, setClassFilter] = useState<string>("all");
   const [sectionFilter, setSectionFilter] = useState<string>("all");
+  const [editId, setEditId] = useState<string | null>(null);
 
   const { data: ca } = useQuery({
     queryKey: ["my-campus-admin", user?.id],
@@ -220,6 +222,9 @@ export default function CampusAdminStudents() {
                             <Ban className="h-3.5 w-3.5 mr-1" /> Disable
                           </Button>
                         )}
+                        <Button size="sm" variant="outline" onClick={() => setEditId(s.id)}>
+                          <UserCog className="h-3.5 w-3.5 mr-1" /> Edit
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -232,6 +237,14 @@ export default function CampusAdminStudents() {
           </div>
         </CardContent>
       </Card>
+      {editId && (
+        <EditStudentProfileDialog
+          studentId={editId}
+          open={!!editId}
+          onOpenChange={(o) => !o && setEditId(null)}
+          invalidateKeys={[["ca-students", campusId]]}
+        />
+      )}
     </div>
   );
 }

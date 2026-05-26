@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, LayoutDashboard, GraduationCap } from "lucide-react";
+import { BookOpen, LayoutDashboard, GraduationCap, UserCog } from "lucide-react";
 import brandLogo from "@/assets/superior-logo.png";
 import UserMenu from "@/components/UserMenu";
 import { toast } from "sonner";
@@ -58,6 +58,9 @@ export default function StudentLayout() {
               </Link>
               <Link to="/student/capstone" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
                 <GraduationCap className="h-3.5 w-3.5" /> Capstone
+              </Link>
+              <Link to="/student/profile" className="text-sm px-3 py-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
+                <UserCog className="h-3.5 w-3.5" /> Profile
               </Link>
             </nav>
           </div>

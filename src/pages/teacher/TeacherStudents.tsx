@@ -9,10 +9,11 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, UserCog } from "lucide-react";
 import { StudentProgressDetail, useStudentOverallProgress } from "@/components/StudentProgressDetail";
+import EditStudentProfileDialog from "@/components/EditStudentProfileDialog";
 
-function StudentRow({ s, onToggle, isOpen }: { s: any; onToggle: () => void; isOpen: boolean }) {
+function StudentRow({ s, onToggle, isOpen, onEdit }: { s: any; onToggle: () => void; isOpen: boolean; onEdit: () => void }) {
   const { data: overall = 0 } = useStudentOverallProgress(s.id);
   return (
     <>
@@ -39,10 +40,15 @@ function StudentRow({ s, onToggle, isOpen }: { s: any; onToggle: () => void; isO
             <span className="text-xs text-muted-foreground tabular-nums w-9 text-right">{overall}%</span>
           </div>
         </td>
+        <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+          <Button size="sm" variant="outline" onClick={onEdit}>
+            <UserCog className="h-3.5 w-3.5 mr-1" /> Edit
+          </Button>
+        </td>
       </tr>
       {isOpen && (
         <tr className="bg-muted/20">
-          <td colSpan={4} className="py-4 px-4">
+          <td colSpan={5} className="py-4 px-4">
             <StudentProgressDetail studentId={s.id} />
           </td>
         </tr>
@@ -56,6 +62,7 @@ export default function TeacherStudents() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [sectionFilters, setSectionFilters] = useState<Record<string, string>>({});
   const [searchFilters, setSearchFilters] = useState<Record<string, string>>({});
+  const [editId, setEditId] = useState<string | null>(null);
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
@@ -215,14 +222,15 @@ export default function TeacherStudents() {
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Student</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Avg Progress</th>
+                        <th className="w-24"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {classStudents.length === 0 ? (
-                        <tr><td colSpan={4} className="py-6 text-center text-muted-foreground text-sm">No students in this class</td></tr>
+                        <tr><td colSpan={5} className="py-6 text-center text-muted-foreground text-sm">No students in this class</td></tr>
                       ) : classStudents.map((s) => (
                         <Fragment key={s.id}>
-                          <StudentRow s={s} isOpen={expanded.has(s.id)} onToggle={() => toggle(s.id)} />
+                          <StudentRow s={s} isOpen={expanded.has(s.id)} onToggle={() => toggle(s.id)} onEdit={() => setEditId(s.id)} />
                         </Fragment>
                       ))}
                     </tbody>
@@ -233,6 +241,14 @@ export default function TeacherStudents() {
           );
         })}
       </Tabs>
+      {editId && (
+        <EditStudentProfileDialog
+          studentId={editId}
+          open={!!editId}
+          onOpenChange={(o) => !o && setEditId(null)}
+          invalidateKeys={[["my-students", assignedClassIds]]}
+        />
+      )}
     </div>
   );
 }
