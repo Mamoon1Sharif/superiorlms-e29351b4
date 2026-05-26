@@ -913,7 +913,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      campus_admin_campus_id: { Args: { _user_id: string }; Returns: string }
+      current_student_id: { Args: never; Returns: string }
       get_user_role: { Args: { _user_id: string }; Returns: string }
+      has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       teacher_can_access_student: {
         Args: { _student_id: string }
         Returns: boolean
