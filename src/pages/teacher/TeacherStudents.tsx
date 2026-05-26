@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ChevronDown, ChevronRight, Search, UserCog } from "lucide-react";
-import { StudentProgressDetail, useStudentOverallProgress } from "@/components/StudentProgressDetail";
+import { StudentProgressDetail, useStudentOverallProgress, useStudentsOverallProgress } from "@/components/StudentProgressDetail";
 import EditStudentProfileDialog from "@/components/EditStudentProfileDialog";
+
+type SortKey = "name_asc" | "name_desc" | "reg_asc" | "progress_desc" | "progress_asc" | "recent";
 
 function StudentRow({ s, onToggle, isOpen, onEdit }: { s: any; onToggle: () => void; isOpen: boolean; onEdit: () => void }) {
   const { data: overall = 0 } = useStudentOverallProgress(s.id);
@@ -62,6 +64,7 @@ export default function TeacherStudents() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [sectionFilters, setSectionFilters] = useState<Record<string, string>>({});
   const [searchFilters, setSearchFilters] = useState<Record<string, string>>({});
+  const [sortBy, setSortBy] = useState<SortKey>("name_asc");
   const [editId, setEditId] = useState<string | null>(null);
 
   const toggle = (id: string) => {
