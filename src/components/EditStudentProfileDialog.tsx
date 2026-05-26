@@ -153,7 +153,7 @@ export default function EditStudentProfileDialog({ studentId, open, onOpenChange
       patch.class_id = classId === NONE ? null : classId;
       patch.section_id = sectionId === NONE ? null : sectionId;
     }
-    const { error } = await supabase.from("students").update(patch).eq("id", studentId);
+    const { error } = await supabase.from("students").update(patch as any).eq("id", studentId);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Profile updated");
