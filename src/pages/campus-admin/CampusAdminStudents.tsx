@@ -237,6 +237,14 @@ export default function CampusAdminStudents() {
           </div>
         </CardContent>
       </Card>
+      {editId && (
+        <EditStudentProfileDialog
+          studentId={editId}
+          open={!!editId}
+          onOpenChange={(o) => !o && setEditId(null)}
+          invalidateKeys={[["ca-students", campusId]]}
+        />
+      )}
     </div>
   );
 }
