@@ -295,3 +295,62 @@ export function useStudentOverallProgress(studentId: string) {
     enabled: !!studentId,
   });
 }
+
+/** Compute overall progress for many students in a single batch (avoids N+1 queries). */
+export function useStudentsOverallProgress(studentIds: string[]) {
+  const key = [...studentIds].sort().join(",");
+  return useQuery({
+    queryKey: ["students-overall-progress-batch", key],
+    queryFn: async () => {
+      const result: Record<string, number> = {};
+      studentIds.forEach((id) => { result[id] = 0; });
+      if (!studentIds.length) return result;
+
+      const { data: courses } = await supabase
+        .from("courses")
+        .select("id")
+        .eq("status", "Published");
+      const courseIds = (courses ?? []).map((c) => c.id);
+      if (!courseIds.length) return result;
+
+      const { data: allMods } = await supabase
+        .from("modules")
+        .select("id, course_id")
+        .in("course_id", courseIds);
+      const moduleIds = (allMods ?? []).map((m) => m.id);
+      if (!moduleIds.length) return result;
+
+      const [{ data: lessons }, { data: quizQs }, { data: assignmentsData }, { data: prog }] = await Promise.all([
+        supabase.from("lessons").select("id, module_id").in("module_id", moduleIds),
+        supabase.from("quiz_questions").select("module_id").in("module_id", moduleIds),
+        supabase.from("assignment_details").select("id, module_id").in("module_id", moduleIds),
+        supabase
+          .from("student_progress")
+          .select("student_id, item_id, completed")
+          .in("student_id", studentIds)
+          .in("module_id", moduleIds),
+      ]);
+
+      const valid = new Set<string>();
+      (lessons ?? []).forEach((l: any) => valid.add(l.id));
+      (assignmentsData ?? []).forEach((a: any) => valid.add(a.id));
+      const quizModules = new Set((quizQs ?? []).map((q: any) => q.module_id));
+      quizModules.forEach((id) => valid.add(id as string));
+      const total = valid.size;
+      if (!total) return result;
+
+      const completedByStudent: Record<string, Set<string>> = {};
+      (prog ?? []).forEach((p: any) => {
+        if (!p.completed || !valid.has(p.item_id)) return;
+        (completedByStudent[p.student_id] = completedByStudent[p.student_id] || new Set()).add(p.item_id);
+      });
+
+      studentIds.forEach((id) => {
+        const done = completedByStudent[id]?.size ?? 0;
+        result[id] = Math.min(100, Math.round((done * 100) / total));
+      });
+      return result;
+    },
+    enabled: studentIds.length > 0,
+  });
+}

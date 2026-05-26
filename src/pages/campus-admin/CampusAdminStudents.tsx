@@ -11,7 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, CheckCircle2, XCircle, Pencil, Save, ChevronRight, Ban, RotateCcw, UserCog, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import EditStudentProfileDialog from "@/components/EditStudentProfileDialog";
+import { useStudentsOverallProgress } from "@/components/StudentProgressDetail";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+type SortKey = "name_asc" | "name_desc" | "reg_asc" | "progress_desc" | "progress_asc" | "status" | "class" | "recent";
 
 export default function CampusAdminStudents() {
   const { user } = useAuth();
@@ -23,6 +26,7 @@ export default function CampusAdminStudents() {
   const [classFilter, setClassFilter] = useState<string>("all");
   const [sectionFilter, setSectionFilter] = useState<string>("all");
   const [editId, setEditId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortKey>("name_asc");
 
   const { data: ca } = useQuery({
     queryKey: ["my-campus-admin", user?.id],
@@ -117,6 +121,31 @@ export default function CampusAdminStudents() {
     return matchSearch && matchClass && matchSection;
   });
 
+  const filteredIds = filtered.map((s: any) => s.id);
+  const { data: progressMap = {} } = useStudentsOverallProgress(filteredIds);
+
+  const statusRank = (s: any) => {
+    if (s.status === "Disabled") return 3;
+    if (s.approval_status === "Pending") return 0;
+    if (s.approval_status === "Approved") return 1;
+    if (s.approval_status === "Rejected") return 2;
+    return 4;
+  };
+
+  const sortedStudents = [...filtered].sort((a: any, b: any) => {
+    switch (sortBy) {
+      case "name_desc": return (b.name ?? "").localeCompare(a.name ?? "");
+      case "reg_asc": return (a.reg_no ?? "").localeCompare(b.reg_no ?? "");
+      case "progress_desc": return (progressMap[b.id] ?? 0) - (progressMap[a.id] ?? 0);
+      case "progress_asc": return (progressMap[a.id] ?? 0) - (progressMap[b.id] ?? 0);
+      case "status": return statusRank(a) - statusRank(b);
+      case "class": return (a.classes?.name ?? "").localeCompare(b.classes?.name ?? "");
+      case "recent": return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "name_asc":
+      default: return (a.name ?? "").localeCompare(b.name ?? "");
+    }
+  });
+
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
@@ -145,6 +174,19 @@ export default function CampusAdminStudents() {
             {(sections ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name_asc">Name (A → Z)</SelectItem>
+            <SelectItem value="name_desc">Name (Z → A)</SelectItem>
+            <SelectItem value="reg_asc">Reg No (A → Z)</SelectItem>
+            <SelectItem value="progress_desc">Progress (High → Low)</SelectItem>
+            <SelectItem value="progress_asc">Progress (Low → High)</SelectItem>
+            <SelectItem value="status">Status (Pending first)</SelectItem>
+            <SelectItem value="class">Class</SelectItem>
+            <SelectItem value="recent">Recently added</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -162,7 +204,7 @@ export default function CampusAdminStudents() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((s: any) => (
+                {sortedStudents.map((s: any) => (
                   <tr
                     key={s.id}
                     className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
@@ -238,7 +280,7 @@ export default function CampusAdminStudents() {
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && (
+                {sortedStudents.length === 0 && (
                   <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">No students found</td></tr>
                 )}
               </tbody>
