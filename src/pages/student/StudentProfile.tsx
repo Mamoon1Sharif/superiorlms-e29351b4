@@ -22,10 +22,14 @@ export default function StudentProfile() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
-        .select("*, classes(name), campuses(name), sections(name)")
+        .select("*, classes(name), campuses(name)")
         .eq("user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
+      if (data?.section_id) {
+        const { data: sec } = await supabase.from("sections").select("name").eq("id", data.section_id).maybeSingle();
+        (data as any).sections = sec;
+      }
       return data;
     },
     enabled: !!user,
