@@ -280,7 +280,7 @@ export default function CampusAdminStudents() {
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && (
+                {sortedStudents.length === 0 && (
                   <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">No students found</td></tr>
                 )}
               </tbody>
