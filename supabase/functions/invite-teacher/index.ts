@@ -16,7 +16,40 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Auth check: only admin or campus_admin can invite teachers
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
+    if (userErr || !userData.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles").select("role").eq("user_id", userData.user.id).maybeSingle();
+    const callerRole = roleRow?.role;
+    if (callerRole !== "admin" && callerRole !== "campus_admin") {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { name, email, password, campus_id, class_assignments } = await req.json();
+
+    // Campus admins can only create teachers in their own campus
+    if (callerRole === "campus_admin") {
+      const { data: ca } = await supabaseAdmin
+        .from("campus_admins").select("campus_id").eq("user_id", userData.user.id).maybeSingle();
+      if (!ca?.campus_id || ca.campus_id !== campus_id) {
+        return new Response(JSON.stringify({ error: "Forbidden: campus mismatch" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     // class_assignments may be: string[] (class ids) OR { class_id, section_id|null }[]
 
     if (!name || !email || !password) {
