@@ -60,6 +60,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/teacher/setup" element={<TeacherSetup />} />
             <Route path="/student/register" element={<StudentRegister />} />
+            <Route path="/student/demo" element={<StudentDemo />} />
 
             {/* Admin routes */}
             <Route element={<RoleGuard allowedRoles={["admin"]}><DashboardLayout /></RoleGuard>}>
