@@ -40,9 +40,9 @@ function StudentRow({ s, onToggle, isOpen, onEdit }: { s: any; onToggle: () => v
             <span className="text-xs text-muted-foreground tabular-nums w-9 text-right">{overall}%</span>
           </div>
         </td>
-        <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-          <Button size="sm" variant="outline" onClick={onEdit}>
-            <UserCog className="h-3.5 w-3.5 mr-1" /> Edit
+        <td className="py-3 px-2 text-right w-10" onClick={(e) => e.stopPropagation()}>
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onEdit} title="Edit profile">
+            <UserCog className="h-4 w-4" />
           </Button>
         </td>
       </tr>
@@ -241,11 +241,12 @@ export default function TeacherStudents() {
           );
         })}
       </Tabs>
-      {editId && (
+      {editId && teacher?.id && (
         <EditStudentProfileDialog
           studentId={editId}
           open={!!editId}
           onOpenChange={(o) => !o && setEditId(null)}
+          scope={{ kind: "teacher", teacherId: teacher.id }}
           invalidateKeys={[["my-students", assignedClassIds]]}
         />
       )}
