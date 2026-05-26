@@ -24,6 +24,7 @@ import Analytics from "@/pages/Analytics";
 import Notifications from "@/pages/Notifications";
 import SettingsPage from "@/pages/SettingsPage";
 import StudentRegister from "@/pages/student/StudentRegister";
+import StudentDemo from "@/pages/student/StudentDemo";
 import StudentDashboard from "@/pages/student/StudentDashboard";
 import StudentCatalog from "@/pages/student/StudentCatalog";
 import StudentCourseView from "@/pages/student/StudentCourseView";
