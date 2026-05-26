@@ -234,6 +234,18 @@ export default function TeacherStudents() {
                     </Select>
                   </>
                 )}
+                <span className="text-xs text-muted-foreground ml-2">Sort:</span>
+                <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+                  <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name_asc">Name (A → Z)</SelectItem>
+                    <SelectItem value="name_desc">Name (Z → A)</SelectItem>
+                    <SelectItem value="reg_asc">Reg No (A → Z)</SelectItem>
+                    <SelectItem value="progress_desc">Progress (High → Low)</SelectItem>
+                    <SelectItem value="progress_asc">Progress (Low → High)</SelectItem>
+                    <SelectItem value="recent">Recently added</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <Card>
                 <CardContent className="p-0">
