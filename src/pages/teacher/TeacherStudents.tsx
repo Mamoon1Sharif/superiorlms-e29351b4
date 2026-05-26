@@ -140,6 +140,9 @@ export default function TeacherStudents() {
     enabled: assignedClassIds.length > 0,
   });
 
+  const allStudentIds = (students ?? []).map((s: any) => s.id);
+  const { data: progressMap = {} } = useStudentsOverallProgress(allStudentIds);
+
   if (!classAssignments || classAssignments.length === 0) {
     return (
       <div className="space-y-6">
@@ -149,10 +152,25 @@ export default function TeacherStudents() {
     );
   }
 
-  // Group assignments by class to make tabs (one per class, regardless of section count)
   const tabsByClass = Array.from(
     new Map(classAssignments.map((a: any) => [a.class_id, a])).values(),
   );
+
+  const sortStudents = (list: any[]) => {
+    const arr = [...list];
+    arr.sort((a, b) => {
+      switch (sortBy) {
+        case "name_desc": return (b.name ?? "").localeCompare(a.name ?? "");
+        case "reg_asc": return (a.reg_no ?? "").localeCompare(b.reg_no ?? "");
+        case "progress_desc": return (progressMap[b.id] ?? 0) - (progressMap[a.id] ?? 0);
+        case "progress_asc": return (progressMap[a.id] ?? 0) - (progressMap[b.id] ?? 0);
+        case "recent": return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "name_asc":
+        default: return (a.name ?? "").localeCompare(b.name ?? "");
+      }
+    });
+    return arr;
+  };
 
   return (
     <div className="space-y-6">
@@ -180,7 +198,7 @@ export default function TeacherStudents() {
           );
           const sectionFilter = sectionFilters[a.class_id] ?? "all";
           const search = (searchFilters[a.class_id] ?? "").trim().toLowerCase();
-          const classStudents = allClassStudents.filter((s: any) => {
+          const filteredStudents = allClassStudents.filter((s: any) => {
             const matchSection = sectionFilter === "all" || s.section_id === sectionFilter;
             const matchSearch =
               !search ||
@@ -189,6 +207,7 @@ export default function TeacherStudents() {
               s.reg_no?.toLowerCase().includes(search);
             return matchSection && matchSearch;
           });
+          const classStudents = sortStudents(filteredStudents);
           return (
             <TabsContent key={a.class_id} value={a.class_id} className="mt-4 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
