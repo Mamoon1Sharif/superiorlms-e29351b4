@@ -174,6 +174,19 @@ export default function CampusAdminStudents() {
             {(sections ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name_asc">Name (A → Z)</SelectItem>
+            <SelectItem value="name_desc">Name (Z → A)</SelectItem>
+            <SelectItem value="reg_asc">Reg No (A → Z)</SelectItem>
+            <SelectItem value="progress_desc">Progress (High → Low)</SelectItem>
+            <SelectItem value="progress_asc">Progress (Low → High)</SelectItem>
+            <SelectItem value="status">Status (Pending first)</SelectItem>
+            <SelectItem value="class">Class</SelectItem>
+            <SelectItem value="recent">Recently added</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>
@@ -191,7 +204,7 @@ export default function CampusAdminStudents() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((s: any) => (
+                {sortedStudents.map((s: any) => (
                   <tr
                     key={s.id}
                     className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
