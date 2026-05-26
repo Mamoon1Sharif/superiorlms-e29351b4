@@ -294,6 +294,13 @@ export default function Login() {
                   Student Registration
                 </Button>
               </a>
+
+              <a href="/student/demo">
+                <Button variant="secondary" className="w-full h-11 mt-2">
+                  <GraduationCap className="h-4 w-4 mr-2" />
+                  Demo Student Login
+                </Button>
+              </a>
             </CardContent>
           </Card>
 
