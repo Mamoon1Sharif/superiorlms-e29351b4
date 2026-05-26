@@ -121,6 +121,31 @@ export default function CampusAdminStudents() {
     return matchSearch && matchClass && matchSection;
   });
 
+  const filteredIds = filtered.map((s: any) => s.id);
+  const { data: progressMap = {} } = useStudentsOverallProgress(filteredIds);
+
+  const statusRank = (s: any) => {
+    if (s.status === "Disabled") return 3;
+    if (s.approval_status === "Pending") return 0;
+    if (s.approval_status === "Approved") return 1;
+    if (s.approval_status === "Rejected") return 2;
+    return 4;
+  };
+
+  const sortedStudents = [...filtered].sort((a: any, b: any) => {
+    switch (sortBy) {
+      case "name_desc": return (b.name ?? "").localeCompare(a.name ?? "");
+      case "reg_asc": return (a.reg_no ?? "").localeCompare(b.reg_no ?? "");
+      case "progress_desc": return (progressMap[b.id] ?? 0) - (progressMap[a.id] ?? 0);
+      case "progress_asc": return (progressMap[a.id] ?? 0) - (progressMap[b.id] ?? 0);
+      case "status": return statusRank(a) - statusRank(b);
+      case "class": return (a.classes?.name ?? "").localeCompare(b.classes?.name ?? "");
+      case "recent": return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "name_asc":
+      default: return (a.name ?? "").localeCompare(b.name ?? "");
+    }
+  });
+
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
