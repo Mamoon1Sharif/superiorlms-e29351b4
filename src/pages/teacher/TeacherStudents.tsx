@@ -222,14 +222,15 @@ export default function TeacherStudents() {
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Student</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Email</th>
                         <th className="text-left py-3 px-4 font-medium text-muted-foreground">Avg Progress</th>
+                        <th className="w-24"></th>
                       </tr>
                     </thead>
                     <tbody>
                       {classStudents.length === 0 ? (
-                        <tr><td colSpan={4} className="py-6 text-center text-muted-foreground text-sm">No students in this class</td></tr>
+                        <tr><td colSpan={5} className="py-6 text-center text-muted-foreground text-sm">No students in this class</td></tr>
                       ) : classStudents.map((s) => (
                         <Fragment key={s.id}>
-                          <StudentRow s={s} isOpen={expanded.has(s.id)} onToggle={() => toggle(s.id)} />
+                          <StudentRow s={s} isOpen={expanded.has(s.id)} onToggle={() => toggle(s.id)} onEdit={() => setEditId(s.id)} />
                         </Fragment>
                       ))}
                     </tbody>
@@ -240,6 +241,14 @@ export default function TeacherStudents() {
           );
         })}
       </Tabs>
+      {editId && (
+        <EditStudentProfileDialog
+          studentId={editId}
+          open={!!editId}
+          onOpenChange={(o) => !o && setEditId(null)}
+          invalidateKeys={[["my-students", assignedClassIds]]}
+        />
+      )}
     </div>
   );
 }
