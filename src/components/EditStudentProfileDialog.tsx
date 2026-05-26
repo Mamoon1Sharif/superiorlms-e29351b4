@@ -13,7 +13,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Query keys to invalidate after save */
-  invalidateKeys?: string[][];
+  invalidateKeys?: unknown[][];
 }
 
 export default function EditStudentProfileDialog({ studentId, open, onOpenChange, invalidateKeys }: Props) {
