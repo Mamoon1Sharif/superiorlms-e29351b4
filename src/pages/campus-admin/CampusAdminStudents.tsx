@@ -11,7 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, CheckCircle2, XCircle, Pencil, Save, ChevronRight, Ban, RotateCcw, UserCog, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import EditStudentProfileDialog from "@/components/EditStudentProfileDialog";
+import { useStudentsOverallProgress } from "@/components/StudentProgressDetail";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+type SortKey = "name_asc" | "name_desc" | "reg_asc" | "progress_desc" | "progress_asc" | "status" | "class" | "recent";
 
 export default function CampusAdminStudents() {
   const { user } = useAuth();
@@ -23,6 +26,7 @@ export default function CampusAdminStudents() {
   const [classFilter, setClassFilter] = useState<string>("all");
   const [sectionFilter, setSectionFilter] = useState<string>("all");
   const [editId, setEditId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortKey>("name_asc");
 
   const { data: ca } = useQuery({
     queryKey: ["my-campus-admin", user?.id],
